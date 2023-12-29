@@ -1,0 +1,5 @@
+h5py~=3.9.0
+numpy~=1.24.3
+nibabel~=5.2.0
+setuptools~=68.2.2
+pydicom~=2.4.4
