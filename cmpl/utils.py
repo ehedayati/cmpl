@@ -52,21 +52,22 @@ def h5_to_nifti(input_file, output_file):
 
         # Extracting orientation vectors
         row_cosines, col_cosines = orientation[:3], orientation[3:]
-        slice_normal = np.cross(row_cosines, col_cosines)
+        slice_normal = np.cross(-row_cosines, col_cosines)
 
         # Adjusting position coordinates (negating x and y components)
         position[:2] = -position[:2]
 
         # Constructing the affine transformation matrix
         affine = np.zeros((4, 4))
-        affine[:3, 0] = row_cosines * pixel_spacing[0]
+        affine[:3, 0] = -row_cosines * pixel_spacing[0]
         affine[:3, 1] = col_cosines * pixel_spacing[1]
         affine[:3, 2] = slice_normal * slice_thickness
         affine[:3, 3] = position
         affine[3, 3] = 1.0
 
         # Creating and saving the NIfTI image
-        nifti_img = nib.Nifti1Image(np.rot90(dicom_images, k=1, axes=(0, 1)), affine)
+        nifti_img = nib.Nifti1Image(np.transpose(dicom_images,axes=[1,0,2,-1])[:,:,::-1,:], affine)
+        # nifti_img = nib.Nifti1Image(np.flip(np.rot90(dicom_images, k=-1, axes=(0, 1)), axis=0), affine)
         nib.save(nifti_img, output_file)
 
         return True, "Conversion successful."
