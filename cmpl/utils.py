@@ -66,7 +66,7 @@ def h5_to_nifti(input_file, output_file):
         affine[3, 3] = 1.0
 
         # Creating and saving the NIfTI image
-        nifti_img = nib.Nifti1Image(np.transpose(dicom_images,axes=[1,0,2,-1])[:,:,::-1,:], affine)
+        nifti_img = nib.Nifti1Image(dicom_images, affine)
         # nifti_img = nib.Nifti1Image(np.flip(np.rot90(dicom_images, k=-1, axes=(0, 1)), axis=0), affine)
         nib.save(nifti_img, output_file)
 
@@ -139,7 +139,7 @@ def dicom_to_h5(dicom_directory, h5py_name, num_contrasts=7, num_slices_per_cont
         pixel_spacing = last_dicom_file.PixelSpacing  # [width spacing, height spacing]
         slice_thickness = last_dicom_file.SliceThickness
 
-        dicom_4d_array = np.stack(all_contrasts, axis=3)
+        dicom_4d_array = np.transpose(np.stack(all_contrasts, axis=3), axes=[1, 0, 2, -1])[:, :, ::-1, :]
 
         # Write data to h5py file
         with h5py.File(h5py_name, 'w') as hf:
