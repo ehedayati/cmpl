@@ -3,4 +3,4 @@
 # Description: This file is developed at CMRR
 __author__ = 'Eisa Hedayati'
 from .utils import *
-
+from .visualization import *
