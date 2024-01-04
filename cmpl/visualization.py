@@ -50,7 +50,7 @@ def side_by_side_view(image1, image2, color_palette='gray'):
     """
 
     fig, axs = plt.subplots(1, 2, figsize=(10, 5))
-
+    fig.dpi = 100
     # Check if images are square, if not, resize them
     if image1.shape[0] != image1.shape[1]:
         image1 = resize_matrix(image1)
@@ -74,3 +74,69 @@ def side_by_side_view(image1, image2, color_palette='gray'):
     axs[1].set_title('Image 2')  # Set title for the second image
 
     plt.show()  # Display the plot
+
+    
+def extract_slice(matrix, slice_number, dimension):
+    """
+    Extract a specific slice from a 3D matrix based on the specified dimension.
+
+    Args:
+        matrix (numpy.ndarray): The input 3D matrix.
+        slice_number (int): The specific slice to extract.
+        dimension (str): The dimension along which to slice ('axial', 'coronal', 'sagittal').
+
+    Returns:
+        numpy.ndarray: The extracted 2D slice.
+    """
+    if dimension == 'coronal':
+        return matrix[:, slice_number, :]
+    elif dimension == 'axial':
+        return matrix[slice_number, :, :]
+    else:  # 'sagittal' or default
+        return matrix[:, :, slice_number]
+
+    
+def visualize_segmentation_slice(grayscale_image, segmentation_matrix, slice_number, dimension='axial', target_shape=(600, 600)):
+    """
+    Visualize a specific slice of the 3D segmentation matrix on top of the corresponding grayscale image slice.
+
+    Args:
+        grayscale_image (numpy.ndarray): 3D grayscale image matrix.
+        segmentation_matrix (numpy.ndarray): 3D segmentation matrix.
+        slice_number (int): The specific slice to visualize.
+        dimension (str): The dimension along which to slice ('axial', 'coronal', 'sagittal').
+        target_shape (tuple): The target shape for resizing the slices.
+    """
+    # Define a color map for 10 distinct colors
+    colors = np.array([
+        [0, 0, 0],       # Color for 0
+        [255, 0, 0],     # Color for 1
+        [0, 255, 0],     # Color for 2
+        [0, 0, 255],     # Color for 3
+        [255, 255, 0],   # Color for 4
+        [255, 0, 255],   # Color for 5
+        [0, 255, 255],   # Color for 6
+        [128, 0, 0],     # Color for 7
+        [0, 128, 0],     # Color for 8
+        [0, 0, 128]      # Color for 9
+    ])
+
+    # Extract and resize the specific slices
+    grayscale_slice = extract_slice(grayscale_image, slice_number, dimension)
+    segmentation_slice = extract_slice(segmentation_matrix, slice_number, dimension)
+
+    grayscale_slice_resized = resize_matrix(grayscale_slice, target_shape)
+    segmentation_slice_resized = resize_matrix(segmentation_slice, target_shape)
+
+    # Apply color map
+    segmentation_colored = np.zeros((*segmentation_slice_resized.shape, 3), dtype=np.uint8)
+    for label in range(10):
+        segmentation_colored[segmentation_slice_resized == label] = colors[label]
+    plt.figure(dpi=100)
+    # Overlay the segmentation on the grayscale image
+    plt.imshow(grayscale_slice_resized, cmap='gray')
+    plt.imshow(segmentation_colored, alpha=0.5)  # Adjust alpha for transparency
+    
+    # Display the result
+    plt.axis('off')
+    plt.show()
