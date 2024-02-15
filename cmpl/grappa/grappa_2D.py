@@ -4,8 +4,9 @@
 import numpy as np
 import torch as pt
 import torch.nn as nn
-pt.set_grad_enabled(False)
 import scipy as sp
+pt.set_grad_enabled(False)
+
 
 
 def grappa_2d_kspace_reconstruction(calibration_kspace, undersampled_kspace, kernel_size, reduction_factors):
@@ -42,11 +43,12 @@ def grappa_2d_kspace_reconstruction(calibration_kspace, undersampled_kspace, ker
 
 
 def pad_if_required(undersampled_kspace, reduction_factors):
-    mods = np.mod(undersampled_kspace.shape[1:2],reduction_factors)
+    mods = np.mod(undersampled_kspace.shape[1:2], reduction_factors)
     R = np.array(reduction_factors)
-    mods[mods==0] = R[mods==0]
+    mods[mods == 0] = R[mods == 0]
     pads = R - mods
-    return np.pad(undersampled_kspace, ((0,0),(0,pads[0]),(0,pads[1]),(0,0)))
+    return np.pad(undersampled_kspace, ((0, 0), (0, pads[0]), (0, pads[1]), (0, 0)))
+
 
 def grappa_2D_source_target(calibration_kspace, kernel_size, reduction_factors):
     """
@@ -137,6 +139,7 @@ def grappa_2D_compute_reconstruction_weights(reconstruction_sources, reconstruct
 
     return reconstruction_weights
 
+
 def grappa_2D_weight_application_line(undersampled_kspace, reconstruction_weights, kernel_size, reduction_factor, nc):
     """
     Applying 2D Grappa weights to reconstruct the undersampled kspace
@@ -225,7 +228,7 @@ def grappa_2D_weight_application(undersampled_kspace, reconstruction_weights, ke
                 col_start_adder = 0
                 continue
             final_reconstruction[..., i + col_start_adder::reduction_factors[0], j::reduction_factors[1]] = \
-            reconstructed_lines[iterator]
+                reconstructed_lines[iterator]
             iterator += 1
 
     return final_reconstruction
