@@ -72,7 +72,8 @@ def h5_to_nifti(input_file, output_file):
 
         return True, "Conversion successful."
     except Exception as e:
-        return False, f"Conversion failed: {str(e)}"
+        return False, "Conversion failed: {}".format(str(e))
+
 
 
 # Example usage:
@@ -126,7 +127,7 @@ def dicom_to_h5(dicom_directory, h5py_name, num_contrasts=7, num_slices_per_cont
                     ds = pydicom.dcmread(filepath)
                     contrast_images.append(ds.pixel_array)
                 except Exception as e:
-                    raise ValueError(f"Error reading DICOM file '{filepath}': {str(e)}")
+                    raise ValueError("Error reading DICOM file '{}': {}".format(filepath, str(e)))
 
             # Convert the list of arrays to a single 3D numpy array
             contrast_array = np.stack(contrast_images, axis=2)

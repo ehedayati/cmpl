@@ -5,8 +5,8 @@ import numpy as np
 import torch as pt
 import torch.nn as nn
 import scipy as sp
-pt.set_grad_enabled(False)
 
+pt.set_grad_enabled(False)
 
 
 def grappa_2d_kspace_reconstruction(calibration_kspace, undersampled_kspace, kernel_size, reduction_factors):
