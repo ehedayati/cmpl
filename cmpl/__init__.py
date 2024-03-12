@@ -4,4 +4,5 @@
 __author__ = 'Eisa Hedayati'
 from .utils import *
 from .visualization import *
-from .grappa import *
+# from .grappa import *
+import cmpl.grappa

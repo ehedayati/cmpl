@@ -9,7 +9,7 @@ import scipy as sp
 pt.set_grad_enabled(False)
 
 
-def grappa_2d_kspace_reconstruction(calibration_kspace, undersampled_kspace, kernel_size, reduction_factors):
+def grappa_2d_recon(calibration_kspace, undersampled_kspace, kernel_size, reduction_factors):
     """
     Reconstruct a 3D k-space from undersampled data using the 2D GRAPPA algorithm.
 

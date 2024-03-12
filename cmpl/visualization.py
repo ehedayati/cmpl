@@ -5,7 +5,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import ndimage
-
+import torch as pt
 
 def resize_matrix(matrix, target_shape=(600, 600)):
     """
@@ -140,3 +140,30 @@ def visualize_segmentation_slice(grayscale_image, segmentation_matrix, slice_num
     # Display the result
     plt.axis('off')
     plt.show()
+
+
+def kspace_to_image_space_3D(kspace_3D, coil_column_loc=-1):
+    """
+    3D Fourier transform to extract image space from the given MRI K-space.
+
+    Parameters:
+    - undersampled_kspace (numpy.ndarray): The undersampled k-space data in 3D (height, width, depth, coils).
+    - nc (int): Number of coils.
+    - column_loc (int): coil column if not the last column
+
+    Returns:
+    - numpy.ndarray: The reconstructed volume using the square root of the sum of squared magnitudes of the coil images.
+    """
+    if coil_column_loc != -1:
+        kspace_3D = kspace_3D.moveaxis(coil_column_loc, -1)
+    # Apply 3D IFFT on the entire k-space data at once
+    volumes = pt.fft.ifftn(pt.fft.ifftshift(kspace_3D, dim=[0, 1, 2]), dim=(0, 1, 2), norm="ortho")
+
+    # Shift the zero frequency components to the center for the entire set
+    shifted_volumes = pt.fft.fftshift(volumes, dim=[0, 1, 2])
+
+    # Compute the combined volume directly from the shifted_volumes array
+    combined_volume = pt.sqrt(pt.sum(np.abs(shifted_volumes) ** 2, axis=-1))
+
+    return combined_volume
+
