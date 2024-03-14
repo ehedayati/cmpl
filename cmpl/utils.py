@@ -8,6 +8,8 @@ import nibabel as nib
 import zipfile
 import os
 import pydicom
+import torch as pt
+pt.set_grad_enabled(False)
 
 
 def h5_to_nifti(input_file, output_file):
@@ -164,3 +166,41 @@ def dicom_to_h5(dicom_directory, h5py_name, num_contrasts=7, num_slices_per_cont
 #
 # dicom_directory = prepare_zipped_dicom(zip_path, extract_path)
 # dicom_to_h5(dicom_directory, h5py_path)
+
+
+def zero_pad(tensor, final_shape):
+    """
+    Place the small_tensor in the center of large_tensor.
+
+    Args:
+    - large_tensor (torch.Tensor): The larger tensor in which the smaller tensor will be centered.
+    - small_tensor (torch.Tensor): The smaller tensor to be placed in the center of the larger tensor.
+
+    Returns:
+    - torch.Tensor: The resulting tensor with the small_tensor centered within the large_tensor.
+    """
+    # Ensure the small tensor can fit in the large tensor
+    is_tensor = False
+    if isinstance(tensor, pt.Tensor):
+        is_tensor = True
+
+    if not is_tensor:
+        tensor = pt.tensor(tensor)
+
+    large_tensor = pt.zeros(final_shape, dtype=pt.complex64)
+    for i in range(len(large_tensor.shape)):
+        if tensor.shape[i] > large_tensor.shape[i]:
+            raise ValueError("The small tensor is larger than the large tensor in dimension {}.".format(i))
+
+    # Calculate start indices for small_tensor to be centered
+    start_indices = [(large_dim - small_dim) // 2 for large_dim, small_dim in zip(large_tensor.shape, tensor.shape)]
+
+    # Create a slice object for each dimension
+    slices = tuple(slice(start_idx, start_idx + small_dim) for start_idx, small_dim in zip(start_indices, tensor.shape))
+
+    # Place the small_tensor in the center of large_tensor
+    large_tensor[slices] = tensor
+    if is_tensor:
+        return large_tensor
+    else:
+        return large_tensor.numpy()

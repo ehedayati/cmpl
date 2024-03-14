@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import ndimage
 import torch as pt
+pt.set_grad_enabled(False)
+
 
 def resize_matrix(matrix, target_shape=(600, 600)):
     """
@@ -142,28 +144,91 @@ def visualize_segmentation_slice(grayscale_image, segmentation_matrix, slice_num
     plt.show()
 
 
-def kspace_to_image_space_3D(kspace_3D, coil_column_loc=-1):
+def kspace_to_image_space(kspace, fourier_dims=[0, 1, 2], coil_column_loc=-1):
     """
-    3D Fourier transform to extract image space from the given MRI K-space.
+    Inverse fourier transform to extract image space from the given MRI K-space.
 
-    Parameters:
-    - undersampled_kspace (numpy.ndarray): The undersampled k-space data in 3D (height, width, depth, coils).
-    - nc (int): Number of coils.
+    Args:
+    - undersampled_kspace (numpy.ndarray or torch.tensor): The k-space
+    - fourier_dims (list of ints): The dimensions of the inverse fourier
     - column_loc (int): coil column if not the last column
 
     Returns:
     - numpy.ndarray: The reconstructed volume using the square root of the sum of squared magnitudes of the coil images.
     """
+    nc = kspace.shape[coil_column_loc]
+
+    is_tensor = False
+    if isinstance(kspace, pt.Tensor):
+        is_tensor = True
+
+    if not is_tensor:
+        kspace = pt.tensor(kspace)
+
     if coil_column_loc != -1:
-        kspace_3D = kspace_3D.moveaxis(coil_column_loc, -1)
+        kspace = kspace.moveaxis(coil_column_loc, -1)
     # Apply 3D IFFT on the entire k-space data at once
-    volumes = pt.fft.ifftn(pt.fft.ifftshift(kspace_3D, dim=[0, 1, 2]), dim=(0, 1, 2), norm="ortho")
+    image_space_before_shift = pt.fft.ifftn(pt.fft.ifftshift(kspace, dim=fourier_dims), dim=fourier_dims,
+                                            norm="ortho")
 
     # Shift the zero frequency components to the center for the entire set
-    shifted_volumes = pt.fft.fftshift(volumes, dim=[0, 1, 2])
+    image_space = pt.fft.fftshift(image_space_before_shift, dim=fourier_dims)
 
     # Compute the combined volume directly from the shifted_volumes array
-    combined_volume = pt.sqrt(pt.sum(np.abs(shifted_volumes) ** 2, axis=-1))
+    combined_volume = pt.sqrt(pt.sum(pt.abs(image_space) ** 2, axis=-1))
+    if is_tensor:
+        return combined_volume
+    else:
+        return combined_volume.numpy()
 
-    return combined_volume
+
+def resize_complex_matrix_fft(image, target_shape):
+    """
+    Resize a complex matrix using FFT and IFFT to achieve the target shape.
+
+    This function resizes an image (or any 2D matrix) represented as a complex matrix using the Fast Fourier Transform (FFT)
+    and its inverse (IFFT). The resizing process involves padding or cropping the frequency domain representation of the image
+    to adjust its spatial dimensions. This method is particularly useful for applications where preserving the frequency
+    characteristics of the image during resizing is important.
+
+    Parameters:
+    - image (pt.Tensor or compatible format): The input image as a complex matrix. If not a PyTorch tensor, it will be converted.
+    - target_shape (tuple of int): The target dimensions (height, width) for the resized image.
+
+    Returns:
+    - pt.Tensor: The resized matrix as a complex matrix, represented in a PyTorch tensor.
+
+    Note:
+    - Padding is applied symmetrically if the target shape is larger than the original shape.
+    - Cropping is centered if the target shape is smaller than the original shape.
+    """
+    if not isinstance(image, pt.Tensor):
+        image = pt.tensor(image, dtype=pt.complex64)
+
+    # Compute the FFT of the original image
+    fft_image = pt.fft.fftshift(pt.fft.fftn(image))
+
+    # Determine the difference in shape
+    current_shape = pt.tensor(image.shape)
+    target_shape = pt.tensor(target_shape)
+    padding = target_shape - current_shape
+
+    # Apply padding or cropping
+    if (padding < 0).any():
+        # Cropping
+        crop_slices = tuple(slice(-p // 2, None if p // 2 == 0 else p // 2) for p in padding)
+        resized_fft = fft_image[crop_slices]
+    else:
+        # Padding
+        # We need to pad manually since PyTorch doesn't support complex padding directly
+        padding = tuple((p // 2, p - p // 2) for p in padding.tolist())  # Convert to list for iterating
+        target_shape = tuple(target_shape)
+        resized_fft = pt.zeros(target_shape, dtype=pt.complex64)
+        start_indices = tuple(slice(p[0], -p[1] if p[1] > 0 else None) for p in padding)
+        resized_fft[start_indices] = fft_image
+
+    # Compute the IFFT of the resized FFT image
+    resized_image = pt.fft.ifftn(pt.fft.ifftshift(resized_fft))
+
+    return resized_image
 
