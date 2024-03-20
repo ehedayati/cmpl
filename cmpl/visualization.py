@@ -20,6 +20,7 @@ def resize_matrix(matrix, target_shape=(600, 600)):
     Returns:
         numpy.ndarray: The resized matrix.
     """
+
     if matrix.shape == target_shape:
         return matrix  # No need to resize if it's already the target shape
 
@@ -28,11 +29,12 @@ def resize_matrix(matrix, target_shape=(600, 600)):
 
     # Use scipy.ndimage.zoom for interpolation
     resized_matrix = ndimage.zoom(matrix, scale_factors, order=1)
-
+    if isinstance(matrix, pt.Tensor):
+        return pt.tensor(resized_matrix)
     return resized_matrix
 
 
-def side_by_side_view(image1, image2, color_palette='gray'):
+def side_by_side_view(image1, image2, color_palette='gray', dpi=100):
     """
     Display two images side by side.
 
@@ -52,7 +54,7 @@ def side_by_side_view(image1, image2, color_palette='gray'):
     """
 
     fig, axs = plt.subplots(1, 2, figsize=(10, 5))
-    fig.dpi = 100
+    fig.dpi = dpi
     # Check if images are square, if not, resize them
     if image1.shape[0] != image1.shape[1]:
         image1 = resize_matrix(image1)
@@ -74,7 +76,7 @@ def side_by_side_view(image1, image2, color_palette='gray'):
     axs[1].imshow(image2, cmap=cmap2)
     axs[1].axis('off')  # Hide axis
     axs[1].set_title('Image 2')  # Set title for the second image
-
+    plt.tight_layout()
     plt.show()  # Display the plot
 
     
@@ -176,6 +178,7 @@ def kspace_to_image_space(kspace, fourier_dims=[0, 1, 2], coil_column_loc=-1):
 
     # Compute the combined volume directly from the shifted_volumes array
     combined_volume = pt.sqrt(pt.sum(pt.abs(image_space) ** 2, axis=-1))
+
     if is_tensor:
         return combined_volume
     else:
@@ -202,6 +205,8 @@ def resize_complex_matrix_fft(image, target_shape):
     - Padding is applied symmetrically if the target shape is larger than the original shape.
     - Cropping is centered if the target shape is smaller than the original shape.
     """
+    if image.shape == target_shape:
+        return image  # No need to resize if it's already the target shape
     if not isinstance(image, pt.Tensor):
         image = pt.tensor(image, dtype=pt.complex64)
 

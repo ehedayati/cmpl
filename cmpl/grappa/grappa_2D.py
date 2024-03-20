@@ -4,9 +4,9 @@
 import numpy as np
 import torch as pt
 import torch.nn as nn
-import scipy as sp
-
 pt.set_grad_enabled(False)
+import scipy as sp
+from .utils import pad_if_required
 
 
 def grappa_2d_recon(calibration_kspace, undersampled_kspace, kernel_size, reduction_factors):
@@ -40,14 +40,6 @@ def grappa_2d_recon(calibration_kspace, undersampled_kspace, kernel_size, reduct
                                                         reduction_factors, nc)
 
     return reconstructed_kspace
-
-
-def pad_if_required(undersampled_kspace, reduction_factors):
-    mods = np.mod(undersampled_kspace.shape[1:2], reduction_factors)
-    R = np.array(reduction_factors)
-    mods[mods == 0] = R[mods == 0]
-    pads = R - mods
-    return np.pad(undersampled_kspace, ((0, 0), (0, pads[0]), (0, pads[1]), (0, 0)))
 
 
 def grappa_2D_source_target(calibration_kspace, kernel_size, reduction_factors):
@@ -113,7 +105,7 @@ def grappa_2D_source_target(calibration_kspace, kernel_size, reduction_factors):
 
 def grappa_2D_compute_reconstruction_weights(reconstruction_sources, reconstruction_targets):
     """
-    Computes the GRAPPA reconstruction weights for 2D MRI data.
+    Computes the GRAPPA reconstruction weights for 3D MRI data.
 
     Parameters:
     - reconstruction_sources (np.ndarray): 2D array of data that will be used for extracting targets

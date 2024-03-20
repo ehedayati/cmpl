@@ -5,9 +5,38 @@ import numpy as np
 import torch as pt
 import torch.nn as nn
 pt.set_grad_enabled(False)
+from .utils import pad_if_required
+
+def grappa_1d_recon(calibration_kspace, undersampled_kspace, reduction_factor, kx, ky, is3D=False):
+    """
+        Reconstruct k-space data using 1D GRAPPA algorithm for the entire image. undersampled_kspace has to
+         have data in the 0th column.
+
+        :param calibration_kspace: The calibration k-space data.
+        :param undersampled_kspace: The undersampled k-space data.
+        :param reduction_factor: The reduction factor used for undersampling.
+        :param kx: The kernel size in the x-dimension.
+        :param ky: The kernel size in the y-dimension.
+        :param is3D: True for 3D acquisition, False for 2D acquisition
+        :return: The reconstructed k-space data.
+        """
+    ifft_ = lambda X, ax: pt.fft.fftshift(pt.fft.ifftn(pt.fft.ifftshift(X, dim=ax), dim=ax, norm='ortho'), dim=ax)
+    undersampled_kspace = pad_if_required(undersampled_kspace, reduction_factor)
+
+    if is3D:
+        undersampled_kspace = ifft_(pt.tensor(undersampled_kspace), 2).numpy()
+        calibration_kspace = ifft_(pt.tensor(calibration_kspace), 2).numpy()
+
+    recond_kspace = np.zeros_like(undersampled_kspace, dtype=np.complex64)
+
+    for i in range(undersampled_kspace.shape[2]):
+        recond_kspace[...,i,:] = grappa_1d_recon_slice(calibration_kspace[...,i,:], undersampled_kspace[...,i,:]
+                                                       , reduction_factor, kx, ky)
+
+    return recond_kspace
 
 
-def grappa_1d_recon(calibration_kspace, undersampled_kspace, reduction_factor, kx, ky):
+def grappa_1d_recon_slice(calibration_kspace, undersampled_kspace, reduction_factor, kx, ky):
     """
     Reconstruct k-space data using 1D GRAPPA algorithm. undersampled_kspace has to have data in the 0th column
 
@@ -35,7 +64,8 @@ def grappa_1d_recon(calibration_kspace, undersampled_kspace, reduction_factor, k
         reconstruction_sources, reconstruction_targets, reduction_factor)
 
     # Applying 1D Grappa
-    final_reconstruction = reconstruct_kspace_1D_grappa(undersampled_kspace, reconstruction_weights, kernel_size, reduction_factor, nc)
+    final_reconstruction = reconstruct_kspace_1D_grappa(
+        undersampled_kspace, reconstruction_weights, kernel_size, reduction_factor, nc)
 
     return final_reconstruction
 
