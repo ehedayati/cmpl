@@ -94,13 +94,13 @@ def prepare_zipped_dicom(zip_path, extract_path):
     return dicom_directory
 
 
-def dicom_to_h5(dicom_directory, h5py_name, num_contrasts=7, num_slices_per_contrast=120):
+def dicom_to_h5(dicom_directory, h5py_path, contrast='3D_gre_sag',num_contrasts=7, num_slices_per_contrast=120):
     """
     Convert DICOM files in a directory to an HDF5 file.
 
     Parameters:
         dicom_directory (str): Path to the directory containing DICOM files.
-        h5py_name (str): Path to the output HDF5 file.
+        h5py_path (str): Path to the output HDF5 file.
         num_contrasts (int, optional): Number of contrasts. Default is 7.
         num_slices_per_contrast (int, optional): Number of slices per contrast. Default is 120.
 
@@ -145,14 +145,25 @@ def dicom_to_h5(dicom_directory, h5py_name, num_contrasts=7, num_slices_per_cont
         dicom_4d_array = np.transpose(np.stack(all_contrasts, axis=3), axes=[1, 0, 2, -1])[:, :, ::-1, :]
 
         # Write data to h5py file
-        with h5py.File(h5py_name, 'w') as hf:
+        with h5py.File(h5py_path + '/' + contrast + '.h5', 'w') as hf:
             hf.create_dataset('dicom_images', data=dicom_4d_array)
             hf.create_dataset('orientation', data=np.array(image_orientation_patient))
             hf.create_dataset('position', data=np.array(image_position_patient))
             hf.create_dataset('pixel_spacing', data=np.array(pixel_spacing))
             hf.create_dataset('slice_thickness', data=np.array(slice_thickness))
         print("DICOM data has been saved to h5py file.")
+        h5_path_2 = os.path.join(h5py_path, contrast)
+        os.makedirs(h5_path_2, exist_ok=True)
 
+        # Iterate over each slice in the 4D array
+        for i in range(dicom_4d_array.shape[-1]):
+            slice_filename = os.path.join(h5_path_2, f'echo_{i+1}.h5')
+            with h5py.File(slice_filename, 'w') as hf:
+                hf.create_dataset('dicom_images', data=dicom_4d_array[..., i])
+                hf.create_dataset('orientation', data=np.array(image_orientation_patient))
+                hf.create_dataset('position', data=np.array(image_position_patient))
+                hf.create_dataset('pixel_spacing', data=np.array(pixel_spacing))
+                hf.create_dataset('slice_thickness', data=np.array(slice_thickness))
     except FileNotFoundError as e:
         print(f"Error: {str(e)}")
     except ValueError as e:
@@ -204,3 +215,7 @@ def zero_pad(tensor, final_shape):
         return large_tensor
     else:
         return large_tensor.numpy()
+
+def nifti_read(file_name):
+    nifti = nib.load(file_name)
+    return nifti,  np.rot90(nifti.get_fdata()[:,::-1,:], k=1, axes=(0,1))

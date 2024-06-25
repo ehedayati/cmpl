@@ -34,7 +34,7 @@ def resize_matrix(matrix, target_shape=(600, 600)):
     return resized_matrix
 
 
-def side_by_side_view(image1, image2, color_palette='gray', dpi=100):
+def side_by_side_view(image1, image2, color_palette='gray', dpi=100, titles=['image1', 'image2']):
     """
     Display two images side by side.
 
@@ -70,12 +70,12 @@ def side_by_side_view(image1, image2, color_palette='gray', dpi=100):
     # Display the first image
     axs[0].imshow(image1, cmap=cmap1)
     axs[0].axis('off')  # Hide axis
-    axs[0].set_title('Image 1')  # Set title for the first image
+    axs[0].set_title(titles[0])  # Set title for the first image
 
     # Display the second image
     axs[1].imshow(image2, cmap=cmap2)
     axs[1].axis('off')  # Hide axis
-    axs[1].set_title('Image 2')  # Set title for the second image
+    axs[1].set_title(titles[1])  # Set title for the second image
     plt.tight_layout()
     plt.show()  # Display the plot
 
@@ -146,7 +146,7 @@ def visualize_segmentation_slice(grayscale_image, segmentation_matrix, slice_num
     plt.show()
 
 
-def kspace_to_image_space(kspace, fourier_dims=[0, 1, 2], coil_column_loc=-1):
+def kspace_to_image_space(kspace, fourier_dims=[0, 1, 2], coil_column_loc=-1, return_coil_images=False):
     """
     Inverse fourier transform to extract image space from the given MRI K-space.
 
@@ -180,9 +180,54 @@ def kspace_to_image_space(kspace, fourier_dims=[0, 1, 2], coil_column_loc=-1):
     combined_volume = pt.sqrt(pt.sum(pt.abs(image_space) ** 2, axis=-1))
 
     if is_tensor:
+        if return_coil_images:
+            return combined_volume, image_space
         return combined_volume
     else:
+        if return_coil_images:
+            return combined_volume.numpy(), image_space.numpy()
         return combined_volume.numpy()
+
+
+def apply_hamming_filter_4d_numpy(input_array, dim1, dim2):
+    """
+    Applies a Hamming filter to the specified dimensions of a 4D input array in NumPy.
+
+    Parameters:
+    - input_array: A 4D NumPy array, potentially with complex numbers.
+    - dim1: The first dimension to apply the Hamming filter on.
+    - dim2: The second dimension to apply the Hamming filter on.
+
+    Returns:
+    - The filtered 4D array.
+    """
+    if not isinstance(input_array, np.ndarray):
+        raise TypeError("Input must be a NumPy array")
+    if input_array.ndim != 4:
+        raise ValueError("Input array must be 4D")
+
+    # Generate the Hamming windows for the specified dimensions
+    size1 = input_array.shape[dim1]
+    size2 = input_array.shape[dim2]
+    hamming_window_dim1 = np.hamming(size1)
+    hamming_window_dim2 = np.hamming(size2)
+
+    # Generate a 2D Hamming window for the specified dimensions
+    hamming_window_2d = np.outer(hamming_window_dim1, hamming_window_dim2)
+
+    # Reshape the 2D window to match the input dimensions
+    shape = [1, 1, 1, 1]  # Default shape for a 4D array
+    shape[dim1] = size1
+    shape[dim2] = size2
+    hamming_window_4d = np.reshape(hamming_window_2d, shape)
+
+    # Expand the Hamming window to match the input array's shape
+    expanded_window = np.broadcast_to(hamming_window_4d, input_array.shape)
+
+    # Apply the Hamming window to the input array
+    filtered_array = input_array * expanded_window
+
+    return filtered_array
 
 
 def resize_complex_matrix_fft(image, target_shape):
@@ -205,13 +250,18 @@ def resize_complex_matrix_fft(image, target_shape):
     - Padding is applied symmetrically if the target shape is larger than the original shape.
     - Cropping is centered if the target shape is smaller than the original shape.
     """
+
+    fft_pt = lambda X, ax: pt.fft.fftshift(pt.fft.fftn(pt.fft.ifftshift(X, dim=ax), dim=ax, norm='ortho'), dim=ax)
+    ifft_pt = lambda X, ax: pt.fft.fftshift(pt.fft.ifft2(pt.fft.ifftshift(X, dim=ax), dim=ax, norm='ortho'), dim=ax)
+
     if image.shape == target_shape:
         return image  # No need to resize if it's already the target shape
     if not isinstance(image, pt.Tensor):
         image = pt.tensor(image, dtype=pt.complex64)
 
     # Compute the FFT of the original image
-    fft_image = pt.fft.fftshift(pt.fft.fftn(image))
+    # fft_image = pt.fft.fftshift(pt.fft.fftn(image))
+    ifft_image = fft_pt(image,[i for i in range(len(image.shape))])
 
     # Determine the difference in shape
     current_shape = pt.tensor(image.shape)
@@ -222,7 +272,7 @@ def resize_complex_matrix_fft(image, target_shape):
     if (padding < 0).any():
         # Cropping
         crop_slices = tuple(slice(-p // 2, None if p // 2 == 0 else p // 2) for p in padding)
-        resized_fft = fft_image[crop_slices]
+        resized_fft = ifft_image[crop_slices]
     else:
         # Padding
         # We need to pad manually since PyTorch doesn't support complex padding directly
@@ -230,10 +280,11 @@ def resize_complex_matrix_fft(image, target_shape):
         target_shape = tuple(target_shape)
         resized_fft = pt.zeros(target_shape, dtype=pt.complex64)
         start_indices = tuple(slice(p[0], -p[1] if p[1] > 0 else None) for p in padding)
-        resized_fft[start_indices] = fft_image
+        resized_fft[start_indices] = ifft_image
 
     # Compute the IFFT of the resized FFT image
-    resized_image = pt.fft.ifftn(pt.fft.ifftshift(resized_fft))
+    # resized_image = pt.fft.ifftn(pt.fft.ifftshift(resized_fft))
+    resized_image = ifft_pt(resized_fft,[i for i in range(len(resized_fft.shape))])
 
     return resized_image
 
