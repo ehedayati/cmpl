@@ -77,11 +77,6 @@ def h5_to_nifti(input_file, output_file):
         return False, "Conversion failed: {}".format(str(e))
 
 
-
-# Example usage:
-# success, message = h5_to_nifti('input.h5', 'output.nii')
-# print(message)
-
 def prepare_zipped_dicom(zip_path, extract_path):
     # Unzip the file
     with zipfile.ZipFile(zip_path, 'r') as zip_ref:
@@ -170,15 +165,6 @@ def dicom_to_h5(dicom_directory, h5py_path, contrast='3D_gre_sag',num_contrasts=
         print(f"Error: {str(e)}")
 
 
-# Example Usage:
-# zip_path = 'MR-SE012-3D_GRE_T2__Sag.zip'
-# extract_path = 'extract'
-# h5py_path = 'output_file.h5'
-#
-# dicom_directory = prepare_zipped_dicom(zip_path, extract_path)
-# dicom_to_h5(dicom_directory, h5py_path)
-
-
 def zero_pad(tensor, final_shape):
     """
     Place the small_tensor in the center of large_tensor.
@@ -219,3 +205,48 @@ def zero_pad(tensor, final_shape):
 def nifti_read(file_name):
     nifti = nib.load(file_name)
     return nifti,  np.rot90(nifti.get_fdata()[:,::-1,:], k=1, axes=(0,1))
+
+def load_dicom_scan_from_dir(directory, verbose=False):
+    """
+    Load all DICOM files from the given directory and convert them into a 3D numpy array.
+
+    Args:
+        directory (str): Path to the directory containing DICOM files.
+        verbose (bool): If True, print additional information about the loading process.
+
+    Returns:
+        numpy.ndarray: A 3D numpy array containing the pixel data from DICOM files.
+    """
+    # Check if the directory exists
+    if not os.path.exists(directory):
+        raise FileNotFoundError(f"The specified directory does not exist: {directory}")
+
+    # Gather all .dcm files in the directory
+    files = [f for f in os.listdir(directory) if f.endswith('.dcm')]
+    if not files:
+        raise ValueError("No DICOM files found in the directory.")
+
+    # Load and sort DICOM files by instance number
+    dicom_files = []
+    for file in files:
+        try:
+            dcm_path = os.path.join(directory, file)
+            dcm = pydicom.dcmread(dcm_path)
+            dicom_files.append(dcm)
+            if verbose:
+                print(f"Loaded {file} with Instance Number: {dcm.InstanceNumber}")
+        except Exception as e:
+            print(f"Failed to read {file}: {e}")
+
+    if not dicom_files:
+        raise ValueError("Failed to load any DICOM files.")
+
+    dicom_files.sort(key=lambda x: int(x.InstanceNumber))
+
+    # Convert pixel data to a 3D numpy array
+    try:
+        image_data = np.stack([s.pixel_array for s in dicom_files])
+    except Exception as e:
+        raise RuntimeError(f"Error creating 3D array from DICOM files: {e}")
+
+    return image_data
