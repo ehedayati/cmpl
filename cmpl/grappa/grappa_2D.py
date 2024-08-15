@@ -4,7 +4,7 @@
 import numpy as np
 import torch as pt
 import torch.nn as nn
-pt.set_grad_enabled(False)
+
 import scipy as sp
 from .utils import pad_if_required
 
@@ -148,6 +148,7 @@ def grappa_2D_weight_application_line(undersampled_kspace, reconstruction_weight
     - output_volume: The reconstructed volume.
     """
     # Prepare the tensor from undersampled k-space
+    pt.set_grad_enabled(False)
     undersampled_tensor = pt.tensor(undersampled_kspace).unsqueeze_(0).moveaxis(-1, 1)
 
     # Prepare the kernel weights
@@ -176,7 +177,7 @@ def grappa_2D_weight_application_line(undersampled_kspace, reconstruction_weight
 
     # Compute the output volume through the convolution layer
     output_volume = conv3d(undersampled_tensor)
-
+    pt.set_grad_enabled(True)
     return output_volume[0]
 
 
@@ -199,6 +200,7 @@ def grappa_2D_weight_application(undersampled_kspace, reconstruction_weights, ke
     reconstructing missing lines. It then assembles the reconstructed lines into the final k-space data,
     adjusting for coil sensitivity and reduction factors.
     """
+    pt.set_grad_enabled(False)
     reconstructed_lines = []
     for i in range(reconstruction_weights.shape[0]):
         for j in range(reconstruction_weights.shape[1]):
@@ -222,5 +224,5 @@ def grappa_2D_weight_application(undersampled_kspace, reconstruction_weights, ke
             final_reconstruction[..., i + col_start_adder::reduction_factors[0], j::reduction_factors[1]] = \
                 reconstructed_lines[iterator]
             iterator += 1
-
+    pt.set_grad_enabled(True)
     return final_reconstruction

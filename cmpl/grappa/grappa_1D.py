@@ -4,7 +4,7 @@
 import numpy as np
 import torch as pt
 import torch.nn as nn
-pt.set_grad_enabled(False)
+
 from .utils import pad_if_required
 
 def grappa_1d_recon(calibration_kspace, undersampled_kspace, reduction_factor, kx, ky, is3D=False):
@@ -20,6 +20,7 @@ def grappa_1d_recon(calibration_kspace, undersampled_kspace, reduction_factor, k
         :param is3D: True for 3D acquisition, False for 2D acquisition
         :return: The reconstructed k-space data.
         """
+    pt.set_grad_enabled(False)
     ifft_ = lambda X, ax: pt.fft.fftshift(pt.fft.ifftn(pt.fft.ifftshift(X, dim=ax), dim=ax, norm='ortho'), dim=ax)
     undersampled_kspace = pad_if_required(undersampled_kspace, reduction_factor)
 
@@ -32,7 +33,7 @@ def grappa_1d_recon(calibration_kspace, undersampled_kspace, reduction_factor, k
     for i in range(undersampled_kspace.shape[2]):
         recond_kspace[...,i,:] = grappa_1d_recon_slice(calibration_kspace[...,i,:], undersampled_kspace[...,i,:]
                                                        , reduction_factor, kx, ky)
-
+    pt.set_grad_enabled(True)
     return recond_kspace
 
 
@@ -142,7 +143,7 @@ def weight_application_1D_grappa(undersampled_kspace, reconstruction_weights, ke
     Returns:
     - output_volume: The output tensor after applying the 3D convolution.
     """
-
+    pt.set_grad_enabled(False)
     # Prepare the input tensor
     undersampled_tensor = pt.tensor(undersampled_kspace).unsqueeze_(0).unsqueeze_(0)
 
@@ -170,5 +171,5 @@ def weight_application_1D_grappa(undersampled_kspace, reconstruction_weights, ke
 
     # Apply the convolution
     output_volume = conv3d(undersampled_tensor)
-
+    pt.set_grad_enabled(True)
     return output_volume.squeeze().moveaxis(0, -1)

@@ -9,7 +9,6 @@ import zipfile
 import os
 import pydicom
 import torch as pt
-pt.set_grad_enabled(False)
 
 
 def h5_to_nifti(input_file, output_file):
@@ -180,6 +179,7 @@ def zero_pad(tensor, final_shape):
     is_tensor = False
     if isinstance(tensor, pt.Tensor):
         is_tensor = True
+        pt.set_grad_enabled(False)
 
     if not is_tensor:
         tensor = pt.tensor(tensor)
@@ -197,6 +197,7 @@ def zero_pad(tensor, final_shape):
 
     # Place the small_tensor in the center of large_tensor
     large_tensor[slices] = tensor
+    pt.set_grad_enabled(True)
     if is_tensor:
         return large_tensor
     else:
