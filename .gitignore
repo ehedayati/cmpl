@@ -40,3 +40,6 @@ build/
 *.egg-info
 *.tar.gz
 *.whl
+
+# git
+*/.ipynb_checkpoints/*

@@ -1,0 +1,10 @@
+[build-system]
+requires = ["setuptools>=64.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cmpl"
+version = "0.5.0"
+description = "CMRR MRI Processing Libraries"
+authors = [{name = "Eisa Hedayati,", email = "heday015@umn.edu"}]
+
