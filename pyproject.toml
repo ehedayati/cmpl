@@ -13,5 +13,7 @@ dependencies = [
     "pandas>=2.0.0",
     "h5py>=3.0.0",
     "pydicom>=2.0.0",
-    "nibabel>=5.0.0"
+    "nibabel>=5.0.0",
+    "pytest>=8.0.0",
+    "hypothesis>=6.0.0"
 ]
