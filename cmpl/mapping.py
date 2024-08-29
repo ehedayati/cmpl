@@ -227,7 +227,8 @@ def t2_star_three_parametric_2D(TE_all, images, num_iterations=10000, initial_lr
 
     return T2_star_map, S0_map, C_map, loss_values
 
-def t2_star_two_parametric_3D(TE_all, images, num_iterations=10000, initial_lr=0.01, lr_decay_factor=0.1, patience=100, initial_T2_star=20.0):
+def t2_star_two_parametric_3D(TE_all, images, num_iterations=10000, initial_lr=0.01,
+                              lr_decay_factor=0.1, patience=100, initial_T2_star=20.0, plot_error=True):
     """
     Computes the T2* and S0 maps from MRI images using an exponential decay model.
     Also tracks and plots the loss during optimization, with learning rate adjustment.
@@ -302,14 +303,15 @@ def t2_star_two_parametric_3D(TE_all, images, num_iterations=10000, initial_lr=0
     S0_map = S0_map.detach().cpu().numpy()
 
     # Plot the loss values over iterations
-    plt.figure(figsize=(10, 6))
-    plt.plot(loss_values, label='Loss')
-    plt.xlabel('Iteration')
-    plt.ylabel('Loss')
-    plt.title('Loss During Optimization with Learning Rate Adjustment')
-    plt.grid(True)
-    plt.legend()
-    plt.show()
+    if plot_error:
+        plt.figure(figsize=(10, 6))
+        plt.plot(loss_values, label='Loss')
+        plt.xlabel('Iteration')
+        plt.ylabel('Loss')
+        plt.title('Loss During Optimization with Learning Rate Adjustment')
+        plt.grid(True)
+        plt.legend()
+        plt.show()
 
     print(f"Final loss: {loss_values[-1]}")
 

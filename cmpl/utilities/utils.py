@@ -9,6 +9,7 @@ import zipfile
 import os
 import pydicom
 import torch as pt
+from scipy import ndimage
 
 
 def h5_to_nifti(input_file, output_file):
@@ -95,6 +96,7 @@ def dicom_to_h5(dicom_directory, h5py_path, contrast='3D_gre_sag',num_contrasts=
     Parameters:
         dicom_directory (str): Path to the directory containing DICOM files.
         h5py_path (str): Path to the output HDF5 file.
+        contrast (str): acquired contrast
         num_contrasts (int, optional): Number of contrasts. Default is 7.
         num_slices_per_contrast (int, optional): Number of slices per contrast. Default is 120.
 
@@ -164,6 +166,149 @@ def dicom_to_h5(dicom_directory, h5py_path, contrast='3D_gre_sag',num_contrasts=
         print(f"Error: {str(e)}")
 
 
+def kspace_to_image_space(kspace, fourier_dims=[0, 1, 2], coil_column_loc=-1, return_coil_images=False):
+    """
+    Inverse fourier transform to extract image space from the given MRI K-space.
+
+    Args:
+    - undersampled_kspace (numpy.ndarray or torch.tensor): The k-space
+    - fourier_dims (list of ints): The dimensions of the inverse fourier
+    - column_loc (int): coil column if not the last column
+
+    Returns:
+    - numpy.ndarray: The reconstructed volume using the square root of the sum of squared magnitudes of the coil images.
+    """
+    nc = kspace.shape[coil_column_loc]
+
+    is_tensor = False
+    if isinstance(kspace, pt.Tensor):
+        is_tensor = True
+
+    if not is_tensor:
+        kspace = pt.tensor(kspace)
+
+    if coil_column_loc != -1:
+        kspace = kspace.moveaxis(coil_column_loc, -1)
+    # Apply 3D IFFT on the entire k-space data at once
+    image_space_before_shift = pt.fft.ifftn(pt.fft.ifftshift(kspace, dim=fourier_dims), dim=fourier_dims,
+                                            norm="ortho")
+
+    # Shift the zero frequency components to the center for the entire set
+    image_space = pt.fft.fftshift(image_space_before_shift, dim=fourier_dims)
+
+    # Compute the combined volume directly from the shifted_volumes array
+    combined_volume = pt.sqrt(pt.sum(pt.abs(image_space) ** 2, axis=-1))
+
+    if is_tensor:
+        if return_coil_images:
+            return combined_volume, image_space
+        return combined_volume
+    else:
+        if return_coil_images:
+            return combined_volume.numpy(), image_space.numpy()
+        return combined_volume.numpy()
+
+
+def apply_hamming_filter_4d_numpy(input_array, dim1, dim2):
+    """
+    Applies a Hamming filter to the specified dimensions of a 4D input array in NumPy.
+
+    Parameters:
+    - input_array: A 4D NumPy array, potentially with complex numbers.
+    - dim1: The first dimension to apply the Hamming filter on.
+    - dim2: The second dimension to apply the Hamming filter on.
+
+    Returns:
+    - The filtered 4D array.
+    """
+    if not isinstance(input_array, np.ndarray):
+        raise TypeError("Input must be a NumPy array")
+    if input_array.ndim != 4:
+        raise ValueError("Input array must be 4D")
+
+    # Generate the Hamming windows for the specified dimensions
+    size1 = input_array.shape[dim1]
+    size2 = input_array.shape[dim2]
+    hamming_window_dim1 = np.hamming(size1)
+    hamming_window_dim2 = np.hamming(size2)
+
+    # Generate a 2D Hamming window for the specified dimensions
+    hamming_window_2d = np.outer(hamming_window_dim1, hamming_window_dim2)
+
+    # Reshape the 2D window to match the input dimensions
+    shape = [1, 1, 1, 1]  # Default shape for a 4D array
+    shape[dim1] = size1
+    shape[dim2] = size2
+    hamming_window_4d = np.reshape(hamming_window_2d, shape)
+
+    # Expand the Hamming window to match the input array's shape
+    expanded_window = np.broadcast_to(hamming_window_4d, input_array.shape)
+
+    # Apply the Hamming window to the input array
+    filtered_array = input_array * expanded_window
+
+    return filtered_array
+
+
+def resize_complex_matrix_fft(image, target_shape):
+    """
+    Resize a complex matrix using FFT and IFFT to achieve the target shape.
+
+    This function resizes an image (or any 2D matrix) represented as a complex matrix using the Fast Fourier Transform (FFT)
+    and its inverse (IFFT). The resizing process involves padding or cropping the frequency domain representation of the image
+    to adjust its spatial dimensions. This method is particularly useful for applications where preserving the frequency
+    characteristics of the image during resizing is important.
+
+    Parameters:
+    - image (pt.Tensor or compatible format): The input image as a complex matrix. If not a PyTorch tensor, it will be converted.
+    - target_shape (tuple of int): The target dimensions (height, width) for the resized image.
+
+    Returns:
+    - pt.Tensor: The resized matrix as a complex matrix, represented in a PyTorch tensor.
+
+    Note:
+    - Padding is applied symmetrically if the target shape is larger than the original shape.
+    - Cropping is centered if the target shape is smaller than the original shape.
+    """
+
+    fft_pt = lambda X, ax: pt.fft.fftshift(pt.fft.fftn(pt.fft.ifftshift(X, dim=ax), dim=ax, norm='ortho'), dim=ax)
+    ifft_pt = lambda X, ax: pt.fft.fftshift(pt.fft.ifft2(pt.fft.ifftshift(X, dim=ax), dim=ax, norm='ortho'), dim=ax)
+
+    if image.shape == target_shape:
+        return image  # No need to resize if it's already the target shape
+    if not isinstance(image, pt.Tensor):
+        image = pt.tensor(image, dtype=pt.complex64)
+
+    # Compute the FFT of the original image
+    # fft_image = pt.fft.fftshift(pt.fft.fftn(image))
+    ifft_image = fft_pt(image,[i for i in range(len(image.shape))])
+
+    # Determine the difference in shape
+    current_shape = pt.tensor(image.shape)
+    target_shape = pt.tensor(target_shape)
+    padding = target_shape - current_shape
+
+    # Apply padding or cropping
+    if (padding < 0).any():
+        # Cropping
+        crop_slices = tuple(slice(-p // 2, None if p // 2 == 0 else p // 2) for p in padding)
+        resized_fft = ifft_image[crop_slices]
+    else:
+        # Padding
+        # We need to pad manually since PyTorch doesn't support complex padding directly
+        padding = tuple((p // 2, p - p // 2) for p in padding.tolist())  # Convert to list for iterating
+        target_shape = tuple(target_shape)
+        resized_fft = pt.zeros(target_shape, dtype=pt.complex64)
+        start_indices = tuple(slice(p[0], -p[1] if p[1] > 0 else None) for p in padding)
+        resized_fft[start_indices] = ifft_image
+
+    # Compute the IFFT of the resized FFT image
+    # resized_image = pt.fft.ifftn(pt.fft.ifftshift(resized_fft))
+    resized_image = ifft_pt(resized_fft,[i for i in range(len(resized_fft.shape))])
+
+    return resized_image
+
+
 def zero_pad(tensor, final_shape):
     """
     Place the small_tensor in the center of large_tensor.
@@ -203,51 +348,28 @@ def zero_pad(tensor, final_shape):
     else:
         return large_tensor.numpy()
 
-def nifti_read(file_name):
-    nifti = nib.load(file_name)
-    return nifti,  np.rot90(nifti.get_fdata()[:,::-1,:], k=1, axes=(0,1))
 
-def load_dicom_scan_from_dir(directory, verbose=False):
+def resize_matrix(matrix, target_shape=(600, 600)):
     """
-    Load all DICOM files from the given directory and convert them into a 3D numpy array.
+    Resize a 2D matrix to the target shape using interpolation.
 
     Args:
-        directory (str): Path to the directory containing DICOM files.
-        verbose (bool): If True, print additional information about the loading process.
+        matrix (numpy.ndarray): The input 2D matrix to be resized.
+        target_shape (tuple): The target shape (height, width) for the output matrix.
 
     Returns:
-        numpy.ndarray: A 3D numpy array containing the pixel data from DICOM files.
+        numpy.ndarray: The resized matrix.
     """
-    # Check if the directory exists
-    if not os.path.exists(directory):
-        raise FileNotFoundError(f"The specified directory does not exist: {directory}")
+    pt.set_grad_enabled(False)
+    if matrix.shape == target_shape:
+        return matrix  # No need to resize if it's already the target shape
 
-    # Gather all .dcm files in the directory
-    files = [f for f in os.listdir(directory) if f.endswith('.dcm')]
-    if not files:
-        raise ValueError("No DICOM files found in the directory.")
+    # Compute the scaling factors
+    scale_factors = (target_shape[0] / matrix.shape[0], target_shape[1] / matrix.shape[1])
 
-    # Load and sort DICOM files by instance number
-    dicom_files = []
-    for file in files:
-        try:
-            dcm_path = os.path.join(directory, file)
-            dcm = pydicom.dcmread(dcm_path)
-            dicom_files.append(dcm)
-            if verbose:
-                print(f"Loaded {file} with Instance Number: {dcm.InstanceNumber}")
-        except Exception as e:
-            print(f"Failed to read {file}: {e}")
-
-    if not dicom_files:
-        raise ValueError("Failed to load any DICOM files.")
-
-    dicom_files.sort(key=lambda x: int(x.InstanceNumber))
-
-    # Convert pixel data to a 3D numpy array
-    try:
-        image_data = np.stack([s.pixel_array for s in dicom_files])
-    except Exception as e:
-        raise RuntimeError(f"Error creating 3D array from DICOM files: {e}")
-
-    return image_data
+    # Use scipy.ndimage.zoom for interpolation
+    resized_matrix = ndimage.zoom(matrix, scale_factors, order=1)
+    pt.set_grad_enabled(True)
+    if isinstance(matrix, pt.Tensor):
+        return pt.tensor(resized_matrix)
+    return resized_matrix
