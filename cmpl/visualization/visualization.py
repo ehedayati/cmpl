@@ -128,6 +128,7 @@ def visualize_segmentation_slice(grayscale_image, segmentation_matrix, slice_num
     plt.axis('off')
     plt.show()
 
+
 def plot_3D_mri(mri_image, slice_number=None, direction='axial', segmentation=None, alpha=0.5, dpi=150, target_shape=None):
     """
     Plots the MRI slices with optional segmentation overlay, either as a single slice or with a slider to navigate through slices.
@@ -143,10 +144,10 @@ def plot_3D_mri(mri_image, slice_number=None, direction='axial', segmentation=No
     """
 
     # Determine the number of slices and the appropriate slicing function
-    if direction == 'axial':
+    if direction == 'coronal':
         max_slices = mri_image.shape[0]
         slice_func = lambda i: (mri_image[i, :, :], segmentation[i, :, :] if segmentation is not None else None)
-    elif direction == 'coronal':
+    elif direction == 'axial':
         max_slices = mri_image.shape[1]
         slice_func = lambda i: (mri_image[:, i, :], segmentation[:, i, :] if segmentation is not None else None)
     elif direction == 'sagittal':

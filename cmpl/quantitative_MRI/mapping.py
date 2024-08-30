@@ -7,7 +7,7 @@ torch.set_grad_enabled(True)
 
 def t2_star_two_parametric_2D(TE_all, images, num_iterations=10000, initial_lr=0.01, lr_decay_factor=0.1, patience=100, initial_T2_star=20.0):
     """
-    Computes the T2* and S0 maps from MRI images using an exponential decay model.
+    Computes the T2* and S0 maps from MRI images using an exponential decay __private_model.
     Also tracks and plots the loss during optimization, with learning rate adjustment.
 
     Parameters:
@@ -94,7 +94,7 @@ def t2_star_two_parametric_2D(TE_all, images, num_iterations=10000, initial_lr=0
 def t2_star_three_parametric_2D(TE_all, images, num_iterations=10000, initial_lr=0.01, lr_decay_factor=0.1,
                                 patience=100, initial_T2_star=20.0, initial_C=0.0):
     """
-    Computes the T2*, S0, and C (noise) maps from MRI images using an exponential decay model.
+    Computes the T2*, S0, and C (noise) maps from MRI images using an exponential decay __private_model.
     Also tracks and plots the loss during optimization, with learning rate adjustment.
 
     Parameters:
@@ -230,7 +230,7 @@ def t2_star_three_parametric_2D(TE_all, images, num_iterations=10000, initial_lr
 def t2_star_two_parametric_3D(TE_all, images, num_iterations=10000, initial_lr=0.01,
                               lr_decay_factor=0.1, patience=100, initial_T2_star=20.0, plot_error=True):
     """
-    Computes the T2* and S0 maps from MRI images using an exponential decay model.
+    Computes the T2* and S0 maps from MRI images using an exponential decay __private_model.
     Also tracks and plots the loss during optimization, with learning rate adjustment.
 
     Parameters:
@@ -319,7 +319,7 @@ def t2_star_two_parametric_3D(TE_all, images, num_iterations=10000, initial_lr=0
 
 def t2_star_three_parametric_3D(TE_all, images, num_iterations=10000, initial_lr=0.01, lr_decay_factor=0.1, patience=100, initial_T2_star=20.0):
     """
-    Computes the T2* and S0 maps from MRI images using an exponential decay model.
+    Computes the T2* and S0 maps from MRI images using an exponential decay __private_model.
     Also tracks and plots the loss during optimization, with learning rate adjustment.
 
     Parameters:
@@ -424,7 +424,7 @@ def reconstruct_images(T2_star_map, S0_map, TE_all):
     S0_map = torch.tensor(S0_map, dtype=torch.float32).to(device)
     TE_all = torch.tensor(TE_all, dtype=torch.float32).to(device)
 
-    # Reconstruct the images using the exponential decay model
+    # Reconstruct the images using the exponential decay __private_model
     try:
         reconstructed_images = S0_map[..., None] * torch.exp(-TE_all[None, None, :] / T2_star_map[..., None])
     except:
