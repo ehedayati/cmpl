@@ -29,10 +29,12 @@ class AutoSegmentation:
         self.__private_device = pt.device('cpu' if device is None else device)
         self.__private_model = None
         self.__private_verbosity = verbosity
+        self.__private_echos = None
 
-    def set_model(self, model):
+    def set_model(self, model, echos):
         self.__private_model = model
         self.__private_model.to(self.__private_device)
+        self.__private_echos = echos
         if self.__private_verbosity > 0:
             print('Model set successfully!')
 
@@ -132,10 +134,9 @@ class AutoSegmentation:
 
         return large_matrix
 
-    def auto_segment(self, echo_indices=None):
-        if echo_indices is None:
-            echo_indices = [0]
-        mats = self._process_all_quadrants(echo_indices)
+    def auto_segment(self):
+
+        mats = self._process_all_quadrants(self.__private_echos)
         with pt.no_grad():
             segmented = [pt.nn.functional.softmax(self.__private_model(mat), dim=1) for mat in mats]
             segmented = [seg.moveaxis(0, -2).reshape([seg.shape[1], seg.shape[2], seg.shape[3], -1]).cpu().numpy() for seg in segmented]

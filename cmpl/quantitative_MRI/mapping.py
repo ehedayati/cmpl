@@ -223,7 +223,7 @@ def t2_star_three_parametric_2D(TE_all, images, num_iterations=10000, initial_lr
 
     plt.tight_layout()
     plt.show()
-    print_last_non_nan(loss_values)
+    _print_last_non_nan(loss_values)
 
     return T2_star_map, S0_map, C_map, loss_values
 
@@ -462,7 +462,7 @@ def calculate_rmse_percentage_s0(original_images, reconstructed_images, S0_map):
 
     return rmse_percentage
 
-def print_last_non_nan(lst):
+def _print_last_non_nan(lst):
     # Iterate over the list in reverse order
     for i in range(len(lst) - 1, -1, -1):
         # Check if the item is not NaN
