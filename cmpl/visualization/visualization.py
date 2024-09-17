@@ -144,10 +144,10 @@ def plot_3D_mri(mri_image, slice_number=None, direction='axial', segmentation=No
     """
 
     # Determine the number of slices and the appropriate slicing function
-    if direction == 'coronal':
+    if direction == 'axial':
         max_slices = mri_image.shape[0]
         slice_func = lambda i: (mri_image[i, :, :], segmentation[i, :, :] if segmentation is not None else None)
-    elif direction == 'axial':
+    elif direction == 'coronal':
         max_slices = mri_image.shape[1]
         slice_func = lambda i: (mri_image[:, i, :], segmentation[:, i, :] if segmentation is not None else None)
     elif direction == 'sagittal':
@@ -173,7 +173,7 @@ def plot_3D_mri(mri_image, slice_number=None, direction='axial', segmentation=No
     # Function to plot a specific slice
     def plot_slice(slice_index):
         mri_slice, seg_slice = slice_func(slice_index)
-
+        
         # Resize if target_shape is provided
         if target_shape:
             mri_slice = resize_matrix(mri_slice, target_shape)

@@ -5,10 +5,15 @@
 __author__ = 'Eisa Hedayati'
 
 from . import utilities
+from . import utilities as utils
 from . import visualization
+from . import visualization as vis
 from . import segmentation
+from . import segmentation as seg
 from . import quantitative_MRI
-from . import grappa
+from . import quantitative_MRI as qmr
+from . import reconstruction
+from . import reconstruction as recon
 
 from ._version import __version__
 
