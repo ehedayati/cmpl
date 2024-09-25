@@ -129,7 +129,8 @@ def visualize_segmentation_slice(grayscale_image, segmentation_matrix, slice_num
     plt.show()
 
 
-def plot_3D_mri(mri_image, slice_number=None, direction='axial', segmentation=None, alpha=0.5, dpi=150, target_shape=None):
+def plot_3D_mri(mri_image, slice_number=None, direction='sagittal', segmentation=None,
+                alpha=0.5, dpi=150, target_shape=None, m_cmap='gray', vmax=1000, vmin=0):
     """
     Plots the MRI slices with optional segmentation overlay, either as a single slice or with a slider to navigate through slices.
 
@@ -142,7 +143,8 @@ def plot_3D_mri(mri_image, slice_number=None, direction='axial', segmentation=No
     dpi (int): The DPI setting for the plot. Higher values yield higher resolution.
     target_shape (tuple): The target shape for resizing the slices. Optional. If None, no resizing is applied.
     """
-
+    if len(mri_image.shape) == 4:
+        mri_image = mri_image[..., 0]
     # Determine the number of slices and the appropriate slicing function
     if direction == 'axial':
         max_slices = mri_image.shape[0]
@@ -181,9 +183,9 @@ def plot_3D_mri(mri_image, slice_number=None, direction='axial', segmentation=No
                 seg_slice = resize_matrix(seg_slice, target_shape)
 
         plt.figure(figsize=(6, 6), dpi=dpi)
-        plt.imshow(mri_slice, cmap='gray')
+        plt.imshow(mri_slice, cmap=m_cmap)
         if seg_slice is not None:
-            plt.imshow(seg_slice, cmap=cmap, alpha=alpha)  # Overlay segmentation
+            plt.imshow(seg_slice, cmap=cmap, alpha=alpha, vmin=vmin, vmax=vmax)  # Overlay segmentation
         plt.axis('off')
         plt.show()
 

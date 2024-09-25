@@ -3,3 +3,4 @@
 # Description: This file is developed at CMRR
 
 from .MRISegmentationTool import AutoSegmentation
+from .tools import extract_extrusion

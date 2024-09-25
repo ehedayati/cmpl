@@ -6,6 +6,7 @@ __author__ = 'Eisa Hedayati'
 
 from . import utilities
 from . import utilities as utils
+from .utilities import io
 from . import visualization
 from . import visualization as vis
 from . import segmentation
