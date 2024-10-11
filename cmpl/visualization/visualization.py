@@ -183,9 +183,9 @@ def plot_3D_mri(mri_image, slice_number=None, direction='sagittal', segmentation
                 seg_slice = resize_matrix(seg_slice, target_shape)
 
         plt.figure(figsize=(6, 6), dpi=dpi)
-        plt.imshow(mri_slice, cmap=m_cmap)
+        plt.imshow(mri_slice, cmap=m_cmap, vmin=vmin, vmax=vmax)
         if seg_slice is not None:
-            plt.imshow(seg_slice, cmap=cmap, alpha=alpha, vmin=vmin, vmax=vmax)  # Overlay segmentation
+            plt.imshow(seg_slice, cmap=cmap, alpha=alpha)  # Overlay segmentation
         plt.axis('off')
         plt.show()
 

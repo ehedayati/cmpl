@@ -14,16 +14,18 @@ def nifti_read(file_name, re_orient=True):
         return nifti, nifti.get_fdata()
 
 
-def load_dicom_scan_from_dir(directory, verbose=False):
+def load_dicom_scan_from_dir(directory, reshape=True, echo=7, verbose=False):
     """
     Load all DICOM files from the given directory and convert them into a 3D numpy array.
 
     Args:
         directory (str): Path to the directory containing DICOM files.
+        reshape: If True returns [x,y,z, echo]
+        echo: if reshape is True, number of echos
         verbose (bool): If True, print additional information about the loading process.
 
     Returns:
-        numpy.ndarray: A 3D numpy array containing the pixel data from DICOM files.
+        numpy.ndarray: A 3D (4D if reshape is True) numpy array containing the pixel data from DICOM files.
     """
     # Check if the directory exists
     if not os.path.exists(directory):
@@ -56,6 +58,11 @@ def load_dicom_scan_from_dir(directory, verbose=False):
         image_data = np.stack([s.pixel_array for s in dicom_files])
     except Exception as e:
         raise RuntimeError(f"Error creating 3D array from DICOM files: {e}")
+
+    if reshape:
+        shape = image_data.shape
+        image_data = np.moveaxis(image_data, 0, -1).reshape(shape[1], shape[2], echo, shape[0] // echo)
+        image_data = np.moveaxis(image_data, -2, -1)
 
     return image_data
 

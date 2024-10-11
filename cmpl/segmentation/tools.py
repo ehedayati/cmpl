@@ -65,7 +65,7 @@ def project_matrix(matrix1, matrix2, value):
     return matrix2
 
 
-def extract_extrusion(extrusion_path, seg_path, output_path, projection_value=11):
+def extract_extrusion(extrusion_path, seg_path, projection_value=11):
     def apply_transformation(matrix):
         # Create a copy of the original matrix
         filled_matrix = matrix.copy()
@@ -101,8 +101,4 @@ def extract_extrusion(extrusion_path, seg_path, output_path, projection_value=11
 
     # Step 4: Set elements of transformed_matrix to 0 where seg_f_no_rot has non-zero elements
     final_matrix = zero_elements_where_b_nonzero(transformed_matrix, seg_f_no_rot)
-
-    # Step 5: Save the transformed matrix as a new NIfTI file
-    cmpl.utilities.io.update_nifti_data(extrusion_path, final_matrix, output_path)
-
-    print(f"Processed and saved the output NIfTI file to {output_path}")
+    return final_matrix
