@@ -115,7 +115,7 @@ def grappa_2D_compute_reconstruction_weights(reconstruction_sources, reconstruct
     - np.ndarray: Reconstruction weights for grappa use
     """
     # Compute the pseudo-inverse of reconstruction sources
-    reconstruction_sources_pinv = sp.linalg.pinv(reconstruction_sources)
+    reconstruction_sources_pinv = sp.linalg.pinv(reconstruction_sources,atol=0.01)
 
     # Adjust pseudo-inverse to match reconstruction_targets dimensions
     reconstruction_sources_pinv = np.repeat(np.expand_dims(reconstruction_sources_pinv, 0),

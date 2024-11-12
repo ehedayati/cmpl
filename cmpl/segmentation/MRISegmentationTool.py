@@ -82,7 +82,7 @@ class AutoSegmentation:
 
     def load_dicom_dir(self, directory):
         self.__private_dicom_dir = directory
-        self.__private_mri_mat = load_dicom_scan_from_dir(directory)
+        self.__private_mri_mat = load_dicom_scan_from_dir(directory, reshape=False)
         self.__private_mri_mat = np.moveaxis(self.__private_mri_mat, 0, -1)
         self.__private_mri_mat = self.__private_mri_mat.reshape(
             self.__private_mri_mat.shape[0], self.__private_mri_mat.shape[1], 7, self.__private_mri_mat.shape[2] // 7)

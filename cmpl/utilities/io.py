@@ -14,18 +14,19 @@ def nifti_read(file_name, re_orient=True):
         return nifti, nifti.get_fdata()
 
 
-def load_dicom_scan_from_dir(directory, reshape=True, echo=7, verbose=False):
+def load_dicom_scan_from_dir(directory, reshape=True, verbose=False):
     """
-    Load all DICOM files from the given directory and convert them into a 3D numpy array.
+    Load all DICOM files from the given directory and convert them into a 3D or 4D numpy array,
+    depending on whether the sequence is single-echo or multi-echo.
 
     Args:
         directory (str): Path to the directory containing DICOM files.
-        reshape: If True returns [x,y,z, echo]
-        echo: if reshape is True, number of echos
+        reshape (bool): If True, returns an array reshaped based on the sequence type.
         verbose (bool): If True, print additional information about the loading process.
 
     Returns:
-        numpy.ndarray: A 3D (4D if reshape is True) numpy array containing the pixel data from DICOM files.
+        numpy.ndarray: A numpy array containing the pixel data from DICOM files.
+                       Shape is [x, y, z] for single-echo and [x, y, z, echo] for multi-echo.
     """
     # Check if the directory exists
     if not os.path.exists(directory):
@@ -36,33 +37,70 @@ def load_dicom_scan_from_dir(directory, reshape=True, echo=7, verbose=False):
     if not files:
         raise ValueError("No DICOM files found in the directory.")
 
-    # Load and sort DICOM files by instance number
-    dicom_files = []
+    # Load DICOM files and collect relevant metadata
+    dicom_info_list = []
     for file in files:
         try:
             dcm_path = os.path.join(directory, file)
             dcm = pydicom.dcmread(dcm_path)
-            dicom_files.append(dcm)
+            echo_number = getattr(dcm, 'EchoNumbers', 1)
+            instance_number = getattr(dcm, 'InstanceNumber', 0)
+            position = getattr(dcm, 'ImagePositionPatient', None)
+            if position:
+                slice_location = position[2]
+            else:
+                slice_location = getattr(dcm, 'SliceLocation', 0)
+            dicom_info_list.append({
+                'dcm': dcm,
+                'EchoNumber': echo_number,
+                'InstanceNumber': instance_number,
+                'SliceLocation': slice_location,
+            })
             if verbose:
-                print(f"Loaded {file} with Instance Number: {dcm.InstanceNumber}")
+                print(f"Loaded {file} with Instance Number: {instance_number}, Echo Number: {echo_number}")
         except Exception as e:
             print(f"Failed to read {file}: {e}")
 
-    if not dicom_files:
+    if not dicom_info_list:
         raise ValueError("Failed to load any DICOM files.")
 
-    dicom_files.sort(key=lambda x: int(x.InstanceNumber))
+    # Determine unique echoes
+    echo_numbers = sorted(set(info['EchoNumber'] for info in dicom_info_list))
+    num_echoes = len(echo_numbers)
+    is_multi_echo = num_echoes > 1
+    if verbose:
+        print(f"Detected {'multi-echo' if is_multi_echo else 'single-echo'} sequence with {num_echoes} echo(s).")
 
-    # Convert pixel data to a 3D numpy array
+    # Organize DICOM files by Echo Number and Slice Location
+    dicom_info_list.sort(key=lambda x: (x['EchoNumber'], x['SliceLocation']))
+
+    # Extract pixel arrays
+    image_data_list = [info['dcm'].pixel_array for info in dicom_info_list]
+
+    # Determine the number of slices
+    total_images = len(image_data_list)
+    num_slices = total_images // num_echoes
+    if verbose:
+        print(f"Number of slices: {num_slices}")
+
+    # Stack the image data
     try:
-        image_data = np.stack([s.pixel_array for s in dicom_files])
+        image_data = np.stack(image_data_list)
     except Exception as e:
-        raise RuntimeError(f"Error creating 3D array from DICOM files: {e}")
+        raise RuntimeError(f"Error creating array from DICOM files: {e}")
 
+    # Reshape the data appropriately
     if reshape:
-        shape = image_data.shape
-        image_data = np.moveaxis(image_data, 0, -1).reshape(shape[1], shape[2], echo, shape[0] // echo)
-        image_data = np.moveaxis(image_data, -2, -1)
+        if is_multi_echo:
+            # Reshape to [num_echoes, num_slices, x, y]
+            image_data = image_data.reshape(num_echoes, num_slices, *image_data.shape[1:])
+            # Move axes to get [x, y, z, echo]
+            image_data = np.moveaxis(image_data, [0, 1], [-1, -2])
+        else:
+            # Reshape to [num_slices, x, y]
+            image_data = image_data.reshape(num_slices, *image_data.shape[1:])
+            # Move axis to get [x, y, z]
+            image_data = np.moveaxis(image_data, 0, -1)
 
     return image_data
 
