@@ -104,6 +104,94 @@ def load_dicom_scan_from_dir(directory, reshape=True, verbose=False):
 
     return image_data
 
+def load_dicom_scan_from_dir_radiological(directory, reshape=True, verbose=False):
+    """
+    Load all DICOM files from the given directory and convert them into a 3D or 4D numpy array,
+    ensuring radiological convention (left-right flipping if needed, correct slice and echo ordering).
+
+    Args:
+        directory (str): Path to the directory containing DICOM files.
+        reshape (bool): If True, returns an array reshaped based on the sequence type.
+        verbose (bool): If True, print additional information about the loading process.
+
+    Returns:
+        numpy.ndarray: A numpy array containing the pixel data from DICOM files,
+                       Shape is [x, y, z] for single-echo and [x, y, z, echo] for multi-echo.
+    """
+    if not os.path.exists(directory):
+        raise FileNotFoundError(f"The specified directory does not exist: {directory}")
+
+    # Gather all .dcm files in the directory
+    files = [f for f in os.listdir(directory) if f.endswith('.dcm')]
+    if not files:
+        raise ValueError("No DICOM files found in the directory.")
+
+    dicom_info_list = []
+    for file in files:
+        try:
+            dcm_path = os.path.join(directory, file)
+            dcm = pydicom.dcmread(dcm_path)
+            echo_number = getattr(dcm, 'EchoNumbers', 1)
+            instance_number = getattr(dcm, 'InstanceNumber', 0)
+            position = getattr(dcm, 'ImagePositionPatient', None)
+            if position:
+                slice_location = position[2]
+            else:
+                slice_location = getattr(dcm, 'SliceLocation', 0)
+            dicom_info_list.append({
+                'dcm': dcm,
+                'EchoNumber': echo_number,
+                'InstanceNumber': instance_number,
+                'SliceLocation': slice_location,
+            })
+            if verbose:
+                print(f"Loaded {file} with Instance Number: {instance_number}, Echo Number: {echo_number}")
+        except Exception as e:
+            print(f"Failed to read {file}: {e}")
+
+    if not dicom_info_list:
+        raise ValueError("Failed to load any DICOM files.")
+
+    # Ensure sorting by EchoNumber first, then by SliceLocation
+    dicom_info_list.sort(key=lambda x: (x['EchoNumber'], x['SliceLocation']))
+
+    # Extract pixel arrays and organize by echo
+    image_data_dict = {}
+    for info in dicom_info_list:
+        echo_number = info['EchoNumber']
+        if echo_number not in image_data_dict:
+            image_data_dict[echo_number] = []
+        image_data_dict[echo_number].append(info['dcm'].pixel_array)
+
+    # Stack data for each echo
+    echo_arrays = []
+    for echo_number in sorted(image_data_dict.keys()):
+        echo_stack = np.stack(image_data_dict[echo_number])  # Stack slices for this echo
+        echo_arrays.append(echo_stack)
+
+    # Combine echos into a 4D array if multi-echo, or 3D if single-echo
+    if len(echo_arrays) > 1:
+        image_data = np.stack(echo_arrays, axis=-1)  # [z, x, y, echo]
+    else:
+        image_data = echo_arrays[0]  # Single-echo [z, x, y]
+
+    # Apply radiological convention (flip left-right if necessary)
+    first_orientation = dicom_info_list[0]['dcm'].ImageOrientationPatient
+    if first_orientation[0] < 0:  # Indicates need for left-right flip
+        image_data = np.flip(image_data, axis=1)  # Flip x-axis
+        if verbose:
+            print("Applied left-right flip for radiological convention.")
+
+    if reshape:
+        if image_data.ndim == 4:
+            # Move axes for multi-echo [x, y, z, echo]
+            image_data = np.moveaxis(image_data, [0, 1, 2, 3], [2, 1, 0, 3])
+        else:
+            # Move axes for single-echo [x, y, z]
+            image_data = np.moveaxis(image_data, [0, 1, 2], [2, 1, 0])
+
+    return image_data
+
 
 def update_nifti_data(file_path, new_data, output_path=None):
     """
