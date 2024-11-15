@@ -46,6 +46,8 @@ def load_dicom_scan_from_dir(directory, reshape=True, verbose=False):
             echo_number = getattr(dcm, 'EchoNumbers', 1)
             instance_number = getattr(dcm, 'InstanceNumber', 0)
             position = getattr(dcm, 'ImagePositionPatient', None)
+            image_position = np.array(dcm.ImagePositionPatient, dtype=float)
+            image_orientation = np.array(dcm.ImageOrientationPatient, dtype=float)
             if position:
                 slice_location = position[2]
             else:
@@ -55,6 +57,8 @@ def load_dicom_scan_from_dir(directory, reshape=True, verbose=False):
                 'EchoNumber': echo_number,
                 'InstanceNumber': instance_number,
                 'SliceLocation': slice_location,
+                'ImageOrientationPatient': image_orientation,
+                'ImagePositionPatient': image_position,
             })
             if verbose:
                 print(f"Loaded {file} with Instance Number: {instance_number}, Echo Number: {echo_number}")
@@ -73,7 +77,11 @@ def load_dicom_scan_from_dir(directory, reshape=True, verbose=False):
 
     # Organize DICOM files by Echo Number and Slice Location
     dicom_info_list.sort(key=lambda x: (x['EchoNumber'], x['SliceLocation']))
-
+     # Fix matrix orientation z direction
+    filtered_list = [d for d in dicom_info_list if d['EchoNumber'] == 1]
+    patient_position_difference = np.array(filtered_list[0]['ImagePositionPatient'] - filtered_list[-1]['ImagePositionPatient'])
+    normal_vector = np.cross(np.array(filtered_list[-1]['ImageOrientationPatient'][:3]), np.array(filtered_list[-1]['ImageOrientationPatient'][3:]))
+    if_reverse_z = np.dot(normal_vector, patient_position_difference) < 0
     # Extract pixel arrays
     image_data_list = [info['dcm'].pixel_array for info in dicom_info_list]
 
@@ -96,6 +104,8 @@ def load_dicom_scan_from_dir(directory, reshape=True, verbose=False):
             image_data = image_data.reshape(num_echoes, num_slices, *image_data.shape[1:])
             # Move axes to get [x, y, z, echo]
             image_data = np.moveaxis(image_data, [0, 1], [-1, -2])
+            if if_reverse_z:
+                image_data = image_data[...,::-1,:]
         else:
             # Reshape to [num_slices, x, y]
             image_data = image_data.reshape(num_slices, *image_data.shape[1:])
@@ -135,13 +145,12 @@ def load_dicom_scan_from_dir_radiological(directory, reshape=True, verbose=False
             dcm = pydicom.dcmread(dcm_path)
             echo_number = getattr(dcm, 'EchoNumbers', 1)
             instance_number = getattr(dcm, 'InstanceNumber', 0)
-            image_position = np.array(getattr(dcm, 'ImagePositionPatient', [0, 0, 0]), dtype=float)
-            image_orientation = np.array(getattr(dcm, 'ImageOrientationPatient', [1, 0, 0, 0, 1, 0]), dtype=float)
-            # Calculate the slice location using the normal vector
+            image_position = np.array(dcm.ImagePositionPatient, dtype=float)
+            image_orientation = np.array(dcm.ImageOrientationPatient, dtype=float)
             row_cosines = image_orientation[:3]
             col_cosines = image_orientation[3:]
             normal_vector = np.cross(row_cosines, col_cosines)
-            slice_location = np.dot(image_position, normal_vector)
+            slice_location = np.dot(normal_vector, image_position)
             dicom_info_list.append({
                 'dcm': dcm,
                 'EchoNumber': echo_number,
@@ -149,6 +158,9 @@ def load_dicom_scan_from_dir_radiological(directory, reshape=True, verbose=False
                 'SliceLocation': slice_location,
                 'ImagePositionPatient': image_position,
                 'ImageOrientationPatient': image_orientation,
+                'RowCosines': row_cosines,
+                'ColCosines': col_cosines,
+                'NormalVector': normal_vector,
             })
             if verbose:
                 print(f"Loaded {file} with Instance Number: {instance_number}, Echo Number: {echo_number}")
@@ -179,35 +191,35 @@ def load_dicom_scan_from_dir_radiological(directory, reshape=True, verbose=False
         # Determine axis flips
         def get_axis_flip(image_orientation):
             # image_orientation is an array of 6 elements:
-            # [Yx, Yy, Yz, Xx, Xy, Xz]
-            # where Y is the direction cosines of the image rows (axis 1)
-            # and X is the direction cosines of the image columns (axis 0)
+            # [Xx, Xy, Xz, Yx, Yy, Yz]
+            # where X is the direction cosines of the image rows (axis 0)
+            # and Y is the direction cosines of the image columns (axis 1)
 
-            X = np.array(image_orientation[3:6])  # direction cosines for image x-axis (columns)
-            Y = np.array(image_orientation[0:3])  # direction cosines for image y-axis (rows)
+            X = np.array(image_orientation[:3])  # direction cosines for image rows (axis 0)
+            Y = np.array(image_orientation[3:6])  # direction cosines for image columns (axis 1)
 
-            # For image x-axis
+            # For image rows (axis 0)
             abs_X = np.abs(X)
             max_index_X = np.argmax(abs_X)  # index 0,1,2 corresponds to x,y,z patient axes
             sign_X = np.sign(X[max_index_X])
 
-            # For image y-axis
+            # For image columns (axis 1)
             abs_Y = np.abs(Y)
             max_index_Y = np.argmax(abs_Y)
             sign_Y = np.sign(Y[max_index_Y])
 
             # Flip axis if direction cosine along dominant patient axis is negative
-            flip_x = sign_X < 0
-            flip_y = sign_Y < 0
+            flip_row = sign_X < 0
+            flip_col = sign_Y < 0
 
-            return flip_x, flip_y
+            return flip_row, flip_col
 
-        flip_x, flip_y = get_axis_flip(image_orientation)
+        flip_row, flip_col = get_axis_flip(image_orientation)
 
-        if flip_x:
-            pixel_array = np.flip(pixel_array, axis=1)  # Flip columns
-        if flip_y:
-            pixel_array = np.flip(pixel_array, axis=0)  # Flip rows
+        if not flip_row:
+            pixel_array = np.flip(pixel_array, axis=0)  # Flip rows (axis 0)
+        if not flip_col:
+            pixel_array = np.flip(pixel_array, axis=1)  # Flip columns (axis 1)
 
         image_data_list.append(pixel_array)
 
@@ -229,9 +241,17 @@ def load_dicom_scan_from_dir_radiological(directory, reshape=True, verbose=False
         image_data = image_data.reshape(num_echoes, num_slices, *image_data.shape[1:])
         # Move axes to get [x, y, z, echo]
         image_data = np.moveaxis(image_data, [0, 1], [-1, -2])
-        # The data is now in shape [x, y, z, echo]
+
+        # Flip x-axis (axis=0) to have patient's left on image right in axial and coronal views
+        image_data = np.flip(image_data, axis=0)
+
+        # Check if we need to flip the z-axis (slice axis)
+        slice_positions = np.array([info['SliceLocation'] for info in dicom_info_list[::num_echoes]])
+        if slice_positions[0] > slice_positions[-1]:
+            # Slices are ordered from superior to inferior, flip z-axis
+            image_data = np.flip(image_data, axis=2)
     else:
         # Do not reshape
         pass
 
-    return image_data
+    return image_data#[...,::-1,:]
