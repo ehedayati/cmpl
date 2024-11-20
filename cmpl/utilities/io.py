@@ -76,15 +76,22 @@ def load_dicom_scan_from_dir(directory, reshape=True, verbose=False):
         print(f"Detected {'multi-echo' if is_multi_echo else 'single-echo'} sequence with {num_echoes} echo(s).")
 
     # Organize DICOM files by Echo Number and Slice Location
-    dicom_info_list.sort(key=lambda x: (x['EchoNumber'], x['SliceLocation']))
-     # Fix matrix orientation z direction
+    dicom_info_list.sort(key=lambda x: (x['EchoNumber'], x['InstanceNumber']))
+    # Fix matrix orientation z direction
     filtered_list = [d for d in dicom_info_list if d['EchoNumber'] == 1]
-    patient_position_difference = np.array(filtered_list[0]['ImagePositionPatient'] - filtered_list[-1]['ImagePositionPatient'])
-    normal_vector = np.cross(np.array(filtered_list[-1]['ImageOrientationPatient'][:3]), np.array(filtered_list[-1]['ImageOrientationPatient'][3:]))
-    if_reverse_z = np.dot(normal_vector, patient_position_difference) < 0
+    patient_position_difference = np.array(
+        filtered_list[-1]['ImagePositionPatient'] - filtered_list[0]['ImagePositionPatient'])
+    normal_vector = np.cross(np.array(filtered_list[-1]['ImageOrientationPatient'][:3]),
+                             np.array(filtered_list[-1]['ImageOrientationPatient'][3:]))
+    if_reverse = np.dot(normal_vector, patient_position_difference) > 0  # check direction
+    slice_axis = np.argmax(np.abs(patient_position_difference))
     # Extract pixel arrays
     image_data_list = [info['dcm'].pixel_array for info in dicom_info_list]
-
+    pixel_spacing = dicom_info_list[0]['dcm'].PixelSpacing
+    slice_thickness = dicom_info_list[0]['dcm'].SliceThickness
+    spacing = list(map(float, pixel_spacing))
+    # Insert slice_thickness at the position indicated by slice_axis
+    spacing = spacing[:slice_axis] + [float(slice_thickness)] + spacing[slice_axis:]
     # Determine the number of slices
     total_images = len(image_data_list)
     num_slices = total_images // num_echoes
@@ -93,25 +100,36 @@ def load_dicom_scan_from_dir(directory, reshape=True, verbose=False):
 
     # Stack the image data
     try:
-        image_data = np.stack(image_data_list)
+        image_data = np.stack(image_data_list, axis=slice_axis)
     except Exception as e:
         raise RuntimeError(f"Error creating array from DICOM files: {e}")
 
-    # Reshape the data appropriately
+    # if_reverse = False
     if reshape:
         if is_multi_echo:
-            # Reshape to [num_echoes, num_slices, x, y]
-            image_data = image_data.reshape(num_echoes, num_slices, *image_data.shape[1:])
-            # Move axes to get [x, y, z, echo]
-            image_data = np.moveaxis(image_data, [0, 1], [-1, -2])
-            if if_reverse_z:
-                image_data = image_data[...,::-1,:]
+            im_shape = image_data.shape
+            # First step is to separate echos from each other
+            target_shape = [*im_shape[0:slice_axis], num_echoes, im_shape[slice_axis] // num_echoes,
+                            *im_shape[slice_axis + 1:]]
+            image_data = image_data.reshape(target_shape)
+            # Move axes to get [x, y, z, echo] standard
+            if slice_axis == 0:
+                image_data = np.moveaxis(image_data, [0, 1], [-1, -2])
+                if if_reverse:
+                    image_data = np.flip(image_data, -2)
+            elif slice_axis == 1:
+                image_data = np.moveaxis(image_data, 1, -1)
+            elif slice_axis == 2:
+                image_data = np.moveaxis(image_data, -1, 0)
         else:
-            # Reshape to [num_slices, x, y]
-            image_data = image_data.reshape(num_slices, *image_data.shape[1:])
-            # Move axis to get [x, y, z]
-            image_data = np.moveaxis(image_data, 0, -1)
-
+            if slice_axis == 0:
+                image_data = np.moveaxis(image_data, 0, -1)
+                if if_reverse:
+                    image_data = np.flip(image_data, -2)
+            elif slice_axis == 1:
+                pass
+            elif slice_axis == 2:
+                image_data = np.moveaxis(image_data, -1, 0)
     return image_data
 
 def load_dicom_scan_from_dir_radiological(directory, reshape=True, verbose=False):

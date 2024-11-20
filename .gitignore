@@ -41,5 +41,6 @@ build/
 *.tar.gz
 *.whl
 
-# git
+# jupyter
 */.ipynb_checkpoints/*
+.ipynb_checkpoints/
