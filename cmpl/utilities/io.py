@@ -104,7 +104,6 @@ def load_dicom_scan_from_dir(directory, reshape=True, verbose=False):
     except Exception as e:
         raise RuntimeError(f"Error creating array from DICOM files: {e}")
 
-    # if_reverse = False
     if reshape:
         if is_multi_echo:
             im_shape = image_data.shape
@@ -121,155 +120,18 @@ def load_dicom_scan_from_dir(directory, reshape=True, verbose=False):
                 image_data = np.moveaxis(image_data, 1, -1)
             elif slice_axis == 2:
                 image_data = np.moveaxis(image_data, -1, 0)
+                if if_reverse:
+                    image_data = np.flip(image_data, 0)
         else:
             if slice_axis == 0:
                 image_data = np.moveaxis(image_data, 0, -1)
                 if if_reverse:
-                    image_data = np.flip(image_data, -2)
+                    image_data = np.flip(image_data, -1)
             elif slice_axis == 1:
                 pass
+
             elif slice_axis == 2:
                 image_data = np.moveaxis(image_data, -1, 0)
+                if if_reverse:
+                    image_data = np.flip(image_data, 0)
     return image_data
-
-def load_dicom_scan_from_dir_radiological(directory, reshape=True, verbose=False):
-    """
-    Load all DICOM files from the given directory and convert them into a 4D numpy array,
-    with the number of echoes as the last dimension and in radiological view.
-
-    Args:
-        directory (str): Path to the directory containing DICOM files.
-        reshape (bool): If True, returns an array reshaped to [x, y, z, echo].
-        verbose (bool): If True, print additional information about the loading process.
-
-    Returns:
-        numpy.ndarray: A numpy array containing the pixel data from DICOM files.
-                       Shape is [x, y, z, echo].
-    """
-    # Check if the directory exists
-    if not os.path.exists(directory):
-        raise FileNotFoundError(f"The specified directory does not exist: {directory}")
-
-    # Gather all .dcm files in the directory
-    files = [f for f in os.listdir(directory) if f.endswith('.dcm')]
-    if not files:
-        raise ValueError("No DICOM files found in the directory.")
-
-    # Load DICOM files and collect relevant metadata
-    dicom_info_list = []
-    for file in files:
-        try:
-            dcm_path = os.path.join(directory, file)
-            dcm = pydicom.dcmread(dcm_path)
-            echo_number = getattr(dcm, 'EchoNumbers', 1)
-            instance_number = getattr(dcm, 'InstanceNumber', 0)
-            image_position = np.array(dcm.ImagePositionPatient, dtype=float)
-            image_orientation = np.array(dcm.ImageOrientationPatient, dtype=float)
-            row_cosines = image_orientation[:3]
-            col_cosines = image_orientation[3:]
-            normal_vector = np.cross(row_cosines, col_cosines)
-            slice_location = np.dot(normal_vector, image_position)
-            dicom_info_list.append({
-                'dcm': dcm,
-                'EchoNumber': echo_number,
-                'InstanceNumber': instance_number,
-                'SliceLocation': slice_location,
-                'ImagePositionPatient': image_position,
-                'ImageOrientationPatient': image_orientation,
-                'RowCosines': row_cosines,
-                'ColCosines': col_cosines,
-                'NormalVector': normal_vector,
-            })
-            if verbose:
-                print(f"Loaded {file} with Instance Number: {instance_number}, Echo Number: {echo_number}")
-        except Exception as e:
-            print(f"Failed to read {file}: {e}")
-
-    if not dicom_info_list:
-        raise ValueError("Failed to load any DICOM files.")
-
-    # Determine unique echoes
-    echo_numbers = sorted(set(info['EchoNumber'] for info in dicom_info_list))
-    num_echoes = len(echo_numbers)
-    if verbose:
-        print(f"Detected sequence with {num_echoes} echo(s).")
-
-    # Organize DICOM files by Echo Number and Slice Location
-    dicom_info_list.sort(key=lambda x: (x['EchoNumber'], x['SliceLocation']))
-
-    # Extract pixel arrays and orientations
-    image_data_list = []
-    for info in dicom_info_list:
-        # Extract the pixel_array
-        pixel_array = info['dcm'].pixel_array
-
-        # Get the image orientation
-        image_orientation = info['ImageOrientationPatient']
-
-        # Determine axis flips
-        def get_axis_flip(image_orientation):
-            # image_orientation is an array of 6 elements:
-            # [Xx, Xy, Xz, Yx, Yy, Yz]
-            # where X is the direction cosines of the image rows (axis 0)
-            # and Y is the direction cosines of the image columns (axis 1)
-
-            X = np.array(image_orientation[:3])  # direction cosines for image rows (axis 0)
-            Y = np.array(image_orientation[3:6])  # direction cosines for image columns (axis 1)
-
-            # For image rows (axis 0)
-            abs_X = np.abs(X)
-            max_index_X = np.argmax(abs_X)  # index 0,1,2 corresponds to x,y,z patient axes
-            sign_X = np.sign(X[max_index_X])
-
-            # For image columns (axis 1)
-            abs_Y = np.abs(Y)
-            max_index_Y = np.argmax(abs_Y)
-            sign_Y = np.sign(Y[max_index_Y])
-
-            # Flip axis if direction cosine along dominant patient axis is negative
-            flip_row = sign_X < 0
-            flip_col = sign_Y < 0
-
-            return flip_row, flip_col
-
-        flip_row, flip_col = get_axis_flip(image_orientation)
-
-        if not flip_row:
-            pixel_array = np.flip(pixel_array, axis=0)  # Flip rows (axis 0)
-        if not flip_col:
-            pixel_array = np.flip(pixel_array, axis=1)  # Flip columns (axis 1)
-
-        image_data_list.append(pixel_array)
-
-    # Determine the number of slices
-    total_images = len(image_data_list)
-    num_slices = total_images // num_echoes
-    if verbose:
-        print(f"Total images: {total_images}, Number of slices: {num_slices}")
-
-    # Stack the image data
-    try:
-        image_data = np.stack(image_data_list)
-    except Exception as e:
-        raise RuntimeError(f"Error creating array from DICOM files: {e}")
-
-    # Reshape the data appropriately
-    if reshape:
-        # Reshape to [num_echoes, num_slices, x, y]
-        image_data = image_data.reshape(num_echoes, num_slices, *image_data.shape[1:])
-        # Move axes to get [x, y, z, echo]
-        image_data = np.moveaxis(image_data, [0, 1], [-1, -2])
-
-        # Flip x-axis (axis=0) to have patient's left on image right in axial and coronal views
-        image_data = np.flip(image_data, axis=0)
-
-        # Check if we need to flip the z-axis (slice axis)
-        slice_positions = np.array([info['SliceLocation'] for info in dicom_info_list[::num_echoes]])
-        if slice_positions[0] > slice_positions[-1]:
-            # Slices are ordered from superior to inferior, flip z-axis
-            image_data = np.flip(image_data, axis=2)
-    else:
-        # Do not reshape
-        pass
-
-    return image_data#[...,::-1,:]
