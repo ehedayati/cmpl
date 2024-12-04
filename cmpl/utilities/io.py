@@ -7,12 +7,36 @@ import os
 import pydicom
 
 def nifti_read(file_name, re_orient=True):
+    O = lambda MAT: np.rot90(MAT[:, ::-1, :], k=1, axes=(0, 1))[:,:,::-1]
     nifti = nib.load(file_name)
     if re_orient:
-        return nifti, np.rot90(nifti.get_fdata()[:,::-1,:], k=1, axes=(0,1))
+        return nifti, O(nifti.get_fdata())
     else:
         return nifti, nifti.get_fdata()
 
+
+def compute_nifti_direction(image_orientation_patient):
+    """
+    Compute the NIfTI 3x3 direction matrix from the DICOM ImageOrientationPatient.
+
+    Parameters:
+    - image_orientation_patient: List or array of 6 floats
+      (row and column direction cosines in patient coordinates).
+
+    Returns:
+    - nifti_direction: Flattened list of 9 floats representing the 3x3 NIfTI direction matrix.
+    """
+    # Extract row and column direction cosines
+    row_direction = np.array(image_orientation_patient[:3])
+    column_direction = np.array(image_orientation_patient[3:])
+
+    # Compute the slice direction as the cross product of row and column directions
+    slice_direction = np.cross(row_direction, column_direction)
+
+    # Assemble the 3x3 matrix
+    nifti_direction = np.column_stack((row_direction, column_direction, slice_direction))
+
+    return nifti_direction
 
 def load_dicom_scan_from_dir(directory, reshape=True, verbose=False):
     """
@@ -135,3 +159,33 @@ def load_dicom_scan_from_dir(directory, reshape=True, verbose=False):
                 if if_reverse:
                     image_data = np.flip(image_data, 0)
     return image_data
+
+def update_nifti_data(file_path, new_data, output_path=None):
+    """
+    Load a NIfTI file, replace its data with new_data, and save it.
+
+    Args:
+    file_path (str): Path to the original NIfTI file.
+    new_data (numpy.ndarray): New data array to replace the existing NIfTI data.
+    output_path (str, optional): Path to save the updated NIfTI file. If None, it overwrites the original file.
+
+    Returns:
+    nib.Nifti1Image: The updated NIfTI image object.
+    """
+    # Load the existing NIfTI file
+    nifti = nib.load(file_path)
+
+    # Validate the new data dimensions
+    # if new_data.shape != nifti.shape:
+    #     raise ValueError("New data must have the same shape as the original NIfTI data.")
+
+    # Create a new NIfTI image object with the new data and the same header
+    new_nifti = nib.Nifti1Image(new_data, affine=nifti.affine, header=nifti.header)
+
+    # Save the new NIfTI image to disk
+    if output_path is None:
+        output_path = file_path  # Overwrite the original file if no output path is specified
+    nib.save(new_nifti, output_path)
+
+    print(f"Updated NIfTI file saved to {output_path}")
+    return new_nifti
