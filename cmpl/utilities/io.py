@@ -38,7 +38,7 @@ def compute_nifti_direction(image_orientation_patient):
 
     return nifti_direction
 
-def load_dicom_scan_from_dir(directory, reshape=True, verbose=False):
+def load_dicom_scan_from_dir(directory, reshape=True, verbose=False, with_spacing=False):
     """
     Load all DICOM files from the given directory and convert them into a 3D or 4D numpy array,
     depending on whether the sequence is single-echo or multi-echo.
@@ -47,10 +47,12 @@ def load_dicom_scan_from_dir(directory, reshape=True, verbose=False):
         directory (str): Path to the directory containing DICOM files.
         reshape (bool): If True, returns an array reshaped based on the sequence type.
         verbose (bool): If True, print additional information about the loading process.
+        with_spacing (bool): If True, return a the spacing with image.
 
     Returns:
         numpy.ndarray: A numpy array containing the pixel data from DICOM files.
                        Shape is [x, y, z] for single-echo and [x, y, z, echo] for multi-echo.
+                       if with_spacing is True, return the spacing with image.
     """
     # Check if the directory exists
     if not os.path.exists(directory):
@@ -109,13 +111,21 @@ def load_dicom_scan_from_dir(directory, reshape=True, verbose=False):
                              np.array(filtered_list[-1]['ImageOrientationPatient'][3:]))
     if_reverse = np.dot(normal_vector, patient_position_difference) > 0  # check direction
     slice_axis = np.argmax(np.abs(patient_position_difference))
+    # print(slice_axis)
     # Extract pixel arrays
     image_data_list = [info['dcm'].pixel_array for info in dicom_info_list]
     pixel_spacing = dicom_info_list[0]['dcm'].PixelSpacing
     slice_thickness = dicom_info_list[0]['dcm'].SliceThickness
+    if hasattr(dicom_info_list[0]['dcm'], 'SpacingBetweenSlices'):
+        slice_spacing = dicom_info_list[0]['dcm'].SpacingBetweenSlices
+    else:
+        slice_spacing = slice_thickness
+
+    origin = filtered_list[0]['ImagePositionPatient']
     spacing = list(map(float, pixel_spacing))
     # Insert slice_thickness at the position indicated by slice_axis
-    spacing = spacing[:slice_axis] + [float(slice_thickness)] + spacing[slice_axis:]
+    spacing = spacing[:slice_axis] + [float(slice_spacing)] + spacing[slice_axis:]
+    # spacing = spacing + [float(slice_spacing)]
     # Determine the number of slices
     total_images = len(image_data_list)
     num_slices = total_images // num_echoes
@@ -138,27 +148,40 @@ def load_dicom_scan_from_dir(directory, reshape=True, verbose=False):
             # Move axes to get [x, y, z, echo] standard
             if slice_axis == 0:
                 image_data = np.moveaxis(image_data, [0, 1], [-1, -2])
+                spacing = [spacing[1], spacing[2], spacing[0]]
+                origin = np.array([origin[1], origin[2], origin[0]])
                 if if_reverse:
                     image_data = np.flip(image_data, -2)
             elif slice_axis == 1:
                 image_data = np.moveaxis(image_data, 1, -1)
             elif slice_axis == 2:
                 image_data = np.moveaxis(image_data, -1, 0)
+                spacing = [spacing[2], spacing[0], spacing[1]]
+                origin = np.array([origin[2], origin[0], origin[1]])
                 if if_reverse:
                     image_data = np.flip(image_data, 0)
         else:
             if slice_axis == 0:
                 image_data = np.moveaxis(image_data, 0, -1)
+                spacing = [spacing[1], spacing[2], spacing[0]]
+                origin = np.array([origin[1], origin[2], origin[0]])
                 if if_reverse:
                     image_data = np.flip(image_data, -1)
             elif slice_axis == 1:
+                # if if_reverse:
+                #     image_data = np.flip(image_data, -1)
                 pass
-
             elif slice_axis == 2:
                 image_data = np.moveaxis(image_data, -1, 0)
+                spacing = [spacing[2], spacing[0], spacing[1]]
+                origin = np.array([origin[2], origin[0], origin[1]])
                 if if_reverse:
                     image_data = np.flip(image_data, 0)
-    return image_data
+    if with_spacing:
+        orientation = filtered_list[0]["ImageOrientationPatient"]
+        return image_data, (origin, spacing, orientation)
+    else:
+        return image_data
 
 def update_nifti_data(file_path, new_data, output_path=None):
     """
