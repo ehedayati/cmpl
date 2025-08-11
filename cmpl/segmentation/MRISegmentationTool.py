@@ -87,7 +87,7 @@ class AutoSegmentation:
         self.__private_mri_mat = self.__private_mri_mat.reshape(
             self.__private_mri_mat.shape[0], self.__private_mri_mat.shape[1], 7, self.__private_mri_mat.shape[2] // 7)
         self.__private_mri_mat = np.moveaxis(self.__private_mri_mat, -2, -1).transpose(1, 0, 2, 3)[..., ::-1, :]
-
+        # self.__private_mri_mat = load_dicom_scan_from_dir(directory, reshape=True)
         self.__private_nifti_header = None
         self.__private_nifti_affine = None
         print('Finished loading dicom')

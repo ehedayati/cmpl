@@ -11,56 +11,62 @@ from matplotlib.colors import ListedColormap
 from cmpl.utilities.utils import resize_matrix
 from typing import List, Optional
 
-def side_by_side_view(image1: numpy.ndarray, image2: numpy.ndarray,
-                      color_palette: str = 'gray', dpi: int = 100, titles: Optional[List[str]] = None):
+def side_by_side_view(*images: np.ndarray,
+                      color_palette: str = 'gray',
+                      dpi: int = 100,
+                      titles: Optional[List[str]] = None):
     """
-    Display two images side by side.
+    Display multiple images side by side.
 
     Args:
-        image1 (numpy.ndarray): The first image to display. It should be a 2D or 3D array.
-                                If 3D, the shape should be (height, width, channels).
-        image2 (numpy.ndarray): The second image to display, with the same requirements as image1.
+        *images (numpy.ndarray): A variable number of images to display. Each image should be a 2D array
+                                 (or 3D if needed, with shape (height, width, channels)).
         color_palette (str, optional): The color palette to use for displaying the images.
                                        Defaults to 'gray'. If 'gray', images are displayed in grayscale.
-                                       Other color palettes can be specified to suit the images.
-        dpi: set dpi of the plots
-        titles (Optional[List[str]], optional): A list of titles to display in the plots.
-        Defaults to ['image1', 'image2'].
+                                       Other color palettes can be specified.
+        dpi (int, optional): Dots per inch for the plot.
+        titles (Optional[List[str]], optional): A list of titles for the images.
+                                                If not provided or if its length doesn't match the number of images,
+                                                default titles will be generated.
 
     Note:
-        - If the images are not square (height != width), they will be resized to a square shape
-          with dimensions 600x600 pixels before being displayed.
-        - The function uses Matplotlib to create a subplot with 1 row and 2 columns, displaying
-          each image in its own subplot.
+        - If an image is not square (height != width), it will be resized to a square shape
+          using the provided 'resize_matrix' function before being displayed.
+        - The function creates a subplot with 1 row and as many columns as images, displaying each image in its own subplot.
     """
-    assert image1.ndim == 2 and image2.ndim == 2
-    if titles is None:
-        titles = ['image1', 'image2']
-    fig, axs = plt.subplots(1, 2, figsize=(10, 5))
+    # Convert the tuple of images to a list for easier handling.
+    images_list = list(images)
+    n_images = len(images_list)
+
+    if n_images == 0:
+        raise ValueError("At least one image must be provided.")
+
+    # Generate default titles if none provided or if the list length doesn't match the number of images.
+    if titles is None or len(titles) != n_images:
+        titles = [f"image {i+1}" for i in range(n_images)]
+
+    # Create a figure with 1 row and n_images columns.
+    fig, axs = plt.subplots(1, n_images, figsize=(5 * n_images, 5))
     fig.dpi = dpi
-    # Check if images are square, if not, resize them
-    if image1.shape[0] != image1.shape[1]:
-        image1 = resize_matrix(image1)
-    if image2.shape[0] != image2.shape[1]:
-        image2 = resize_matrix(image2)
 
-    # Set color mapping based on the specified color palette
-    if color_palette == 'gray':
-        cmap1, cmap2 = 'gray', 'gray'
-    else:
-        cmap1, cmap2 = color_palette, color_palette
+    # If there's only one image, make axs a list to simplify looping.
+    if n_images == 1:
+        axs = [axs]
 
-    # Display the first image
-    axs[0].imshow(image1, cmap=cmap1)
-    axs[0].axis('off')  # Hide axis
-    axs[0].set_title(titles[0])  # Set title for the first image
+    # Set the colormap.
+    cmap = 'gray' if color_palette == 'gray' else color_palette
 
-    # Display the second image
-    axs[1].imshow(image2, cmap=cmap2)
-    axs[1].axis('off')  # Hide axis
-    axs[1].set_title(titles[1])  # Set title for the second image
+    for idx, (img, title) in enumerate(zip(images_list, titles)):
+        # If the image is not square, resize it.
+        if img.shape[0] != img.shape[1]:
+            img = resize_matrix(img)
+
+        axs[idx].imshow(img, cmap=cmap)
+        axs[idx].axis('off')
+        axs[idx].set_title(title)
+
     plt.tight_layout()
-    plt.show()  # Display the plot
+    plt.show()
 
     
 def visualize_segmentation_slice(grayscale_image, segmentation_matrix, slice_number, dimension='axial', target_shape=(600, 600)):
@@ -160,16 +166,30 @@ def plot_3D_mri(mri_image, slice_number=None, direction='sagittal', segmentation
 
     # Define a color map for segmentation
     colors = [(0, 0, 0, 0)]  # transparent color for label 0
-    colors += [(1, 0, 0, alpha),  # red with adjustable transparency
-               (0, 1, 0, alpha),  # green with adjustable transparency
-               (0, 0, 1, alpha),  # blue with adjustable transparency
-               (1, 1, 0, alpha),  # yellow with adjustable transparency
-               (1, 0, 1, alpha),  # magenta with adjustable transparency
-               (0, 1, 1, alpha),  # cyan with adjustable transparency
-               (1, 0.5, 0, alpha),  # orange with adjustable transparency
-               (0.5, 0, 1, alpha),  # purple with adjustable transparency
-               (0, 1, 0.5, alpha),  # teal with adjustable transparency
-               (1, 0.5, 0.5, alpha)]  # pink with adjustable transparency
+    colors += [
+        (1, 0, 0, alpha),  # 1. red
+        (0, 1, 0, alpha),  # 2. green
+        (0, 0, 1, alpha),  # 3. blue
+        (1, 1, 0, alpha),  # 4. yellow
+        (1, 0, 1, alpha),  # 5. magenta
+        (0, 1, 1, alpha),  # 6. cyan
+        (1, 0.5, 0, alpha),  # 7. orange
+        (0.5, 0, 1, alpha),  # 8. purple
+        (0, 1, 0.5, alpha),  # 9. teal
+        (1, 0.5, 0.5, alpha),  # 10. pink
+
+        # additional colors up to label 19
+        (0.6, 0.4, 0.2, alpha),  # 11. brown
+        (0, 0, 0.5, alpha),  # 12. navy
+        (0.5, 0.5, 0, alpha),  # 13. olive
+        (0.5, 0.5, 0.5, alpha),  # 14. gray
+        (0.5, 0.5, 1, alpha),  # 15. light blue
+        (1, 0.84, 0, alpha),  # 16. gold
+        (1, 0.6, 0.6, alpha),  # 17. salmon
+        (0.93, 0.51, 0.93, alpha),  # 18. violet
+        (0.75, 1, 0, alpha)  # 19. lime
+    ]
+
     cmap = ListedColormap(colors)
 
     # Function to plot a specific slice

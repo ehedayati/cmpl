@@ -5,6 +5,9 @@ import nibabel as nib
 import numpy as np
 import os
 import pydicom
+import SimpleITK as sitk
+from collections import defaultdict
+
 
 def nifti_read(file_name, re_orient=True):
     O = lambda MAT: np.rot90(MAT[:, ::-1, :], k=1, axes=(0, 1))[:,:,::-1]
@@ -212,3 +215,176 @@ def update_nifti_data(file_path, new_data, output_path=None):
 
     print(f"Updated NIfTI file saved to {output_path}")
     return new_nifti
+
+def dicom_to_SimpleITK(dicom_directory):
+    """
+    Reads a multi-echo DICOM series from a directory where all echoes are stored in one series
+    but with different EchoTime values (DICOM tag 0018|0081) on a per-slice basis, and returns
+    either a 3D image (if a single echo is found) or a merged 4D image (if multiple echoes are present).
+
+    For each echo, the metadata from the first DICOM file in that echo group is copied to the
+    resulting 3D image wherever possible.
+
+    Parameters:
+        dicom_directory (str): Path to the directory containing the DICOM files.
+
+    Returns:
+        sitk.Image: A 4D image if multiple echoes are present, or a 3D image if only one echo is found.
+
+    Raises:
+        ValueError: If no DICOM series is found in the provided directory.
+    """
+    # Initialize the ImageSeriesReader and get the series IDs.
+    series_reader = sitk.ImageSeriesReader()
+    series_IDs = series_reader.GetGDCMSeriesIDs(dicom_directory)
+    if not series_IDs:
+        raise ValueError("No DICOM series found in the provided directory.")
+
+    # For this example, use the first available series ID.
+    series_id = series_IDs[0]
+    file_names = series_reader.GetGDCMSeriesFileNames(dicom_directory, series_id)
+
+    # Group file names by EchoTime.
+    echo_groups = defaultdict(list)
+    for f in file_names:
+        file_reader = sitk.ImageFileReader()
+        file_reader.SetFileName(f)
+        file_reader.ReadImageInformation()  # Read metadata only
+        try:
+            # Extract EchoTime as a float from the metadata (tag 0018|0081)
+            echo_time = float(file_reader.GetMetaData("0018|0081"))
+        except Exception:
+            # If EchoTime is missing, use None as the key.
+            echo_time = None
+        echo_groups[echo_time].append(f)
+
+    # Process each echo group to read as a separate 3D image.
+    echo_images = {}
+    for echo, files in echo_groups.items():
+        # Helper function to extract the InstanceNumber for sorting slices.
+        def get_instance_number(filename):
+            r = sitk.ImageFileReader()
+            r.SetFileName(filename)
+            r.ReadImageInformation()
+            try:
+                return int(r.GetMetaData("0020|0013"))
+            except Exception:
+                return 0  # Fallback if InstanceNumber is missing
+
+        # Sort file names by instance number.
+        files.sort(key=get_instance_number)
+
+        # Read metadata from the first DICOM file in the group.
+        first_file = files[0]
+        meta_reader = sitk.ImageFileReader()
+        meta_reader.SetFileName(first_file)
+        meta_reader.ReadImageInformation()
+        first_metadata = {}
+        for key in meta_reader.GetMetaDataKeys():
+            first_metadata[key] = meta_reader.GetMetaData(key)
+
+        # Read the 3D image from the sorted files.
+        series_reader.SetFileNames(files)
+        image = series_reader.Execute()
+
+        # Copy metadata from the first file to the resulting image.
+        for key, value in first_metadata.items():
+            image.SetMetaData(key, value)
+
+        echo_images[echo] = image
+
+    # If only one echo exists, return that single 3D image.
+    if len(echo_images) == 1:
+        return list(echo_images.values())[0]
+
+    # If multiple echoes are present, merge them into a 4D image.
+    sorted_keys = sorted(echo_images.keys())
+    image_list = [echo_images[key] for key in sorted_keys]
+    merged_image = sitk.JoinSeries(image_list)
+
+    return merged_image
+
+
+def itk_to_nifti(itk_image, nifti_path, verbose=True):
+    # Check if the provided path ends with valid NIfTI extensions.
+    if not (nifti_path.endswith('.nii') or nifti_path.endswith('.nii.gz')):
+        nifti_path += '.nii.gz'
+
+    try:
+        writer = sitk.ImageFileWriter()
+        writer.SetFileName(nifti_path)
+        writer.Execute(itk_image)
+        if verbose:
+            print(f"File written successfully: {nifti_path}")
+    except Exception as e:
+        print(f"Error converting ITK image to NIfTI: {e}")
+        raise  # re-raise the exception for further handling if needed
+
+    return os.path.abspath(nifti_path)
+
+
+from nibabel.nifti1 import Nifti1Image
+
+
+def itk_mask_correction(img: Nifti1Image, mask: Nifti1Image, tol: float = 1e-1, return_axis=False) -> np.ndarray:
+    """
+    Automatically corrects the orientation of a segmentation mask to match a reference image.
+
+    This function compares the affine translations of a reference image and its corresponding mask.
+    It detects axes along which the mask has been flipped (i.e., where the translation difference
+    corresponds to a flip) and then flips the mask data along those axes.
+
+    Parameters:
+        img (Nifti1Image): The reference image (e.g., an anatomical MRI) with the correct orientation.
+        mask (Nifti1Image): The segmentation mask image whose orientation needs correction.
+        tol (float): Tolerance value for comparing the expected difference in translation
+                     (default is 1e-1).
+
+    Returns:
+        np.ndarray: The corrected mask data array after flipping the necessary axes.
+
+    Notes:
+        - This function assumes that the reference image and mask have the same spatial dimensions.
+        - The affine matrices of the images are used to determine voxel spacing and expected translation shifts.
+    """
+    # Extract the affine matrices from the reference image and the mask.
+    img_affine = img.affine
+    mask_affine = mask.affine
+
+    # Get the shape of the spatial dimensions (assuming the first three dimensions are x, y, z).
+    shape = img.shape[:3]
+
+    # Retrieve the mask data as a NumPy array.
+    mask_data = mask.get_fdata()
+
+    flip_axes = []  # List to store axes along which the mask is flipped.
+
+    # Loop over each spatial axis (0, 1, 2 corresponding to x, y, z).
+    for i in range(3):
+        # Extract the i-th column of the reference image affine.
+        # The norm of this column gives the voxel spacing along that axis.
+        col = img_affine[:3, i]
+        spacing = np.linalg.norm(col)
+
+        # Calculate the expected difference in translation if the axis were flipped.
+        # For a flipped axis, the translation difference should be approximately:
+        # - (number of voxels in that dimension - 1) * voxel spacing.
+        expected_diff = - (shape[i] - 1) * spacing
+
+        # Calculate the actual difference in translations between the mask and the reference image.
+        diff_vector = mask_affine[:3, 3] - img_affine[:3, 3]
+        # Project this difference onto the axis direction.
+        proj = np.dot(diff_vector, col) / spacing
+
+        # If the projected difference is close to the expected value, we infer that the axis is flipped.
+        if np.abs(proj - expected_diff) < tol:
+            flip_axes.append(i)
+
+    # Flip the mask data along each detected axis.
+    for axis in flip_axes:
+        mask_data = np.flip(mask_data, axis=axis)
+
+    if return_axis:
+        return mask_data.copy(), flip_axes
+    else:
+        return mask_data.copy()
