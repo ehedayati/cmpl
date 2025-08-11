@@ -2,7 +2,7 @@ import os
 from setuptools import setup, find_packages
 
 # Read the version from setup.py's version argument
-version = "0.5.0"  # Keep this synchronized with the setup() call
+version = "0.6.0"  # Keep this synchronized with the setup() call
 
 def write_version_py(version):
     version_path = os.path.join(os.path.dirname(__file__), "cmpl", "_version.py")
