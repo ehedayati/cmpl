@@ -17,3 +17,4 @@ Welcome to CMPL (CMRR MRI Processing Libraries), a specialized Python toolkit ta
 Install CMPL using pip:
 ```bash
 pip install cmpl
+```
