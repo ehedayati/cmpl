@@ -228,7 +228,7 @@ def t2_star_three_parametric_2D(TE_all, images, num_iterations=10000, initial_lr
     return T2_star_map, S0_map, C_map, loss_values
 
 def t2_star_two_parametric_3D(TE_all, images, num_iterations=10000, initial_lr=0.01,
-                              lr_decay_factor=0.1, patience=100, initial_T2_star=20.0, plot_error=True):
+                              lr_decay_factor=0.1, patience=100, initial_T2_star=20.0, plot_error=True, return_RMSE=False):
     """
     Computes the T2* and S0 maps from MRI images using an exponential decay __private_model.
     Also tracks and plots the loss during optimization, with learning rate adjustment.
@@ -241,7 +241,8 @@ def t2_star_two_parametric_3D(TE_all, images, num_iterations=10000, initial_lr=0
     - lr_decay_factor: Factor by which the learning rate will be reduced (default: 0.1).
     - patience: Number of iterations to wait before reducing the learning rate (default: 100).
     - initial_T2_star: Initial guess for T2* for all voxels (default: 20.0).
-
+    - plot_error: Whether to plot the loss after optimization is complete, used for num_iterations evaluation (default: True).
+    -
     Returns:
     - T2_star_map: A numpy array containing the T2* values for each voxel (x, y, z).
     - S0_map: A numpy array containing the S0 values for each voxel (x, y, z).
@@ -255,7 +256,16 @@ def t2_star_two_parametric_3D(TE_all, images, num_iterations=10000, initial_lr=0
 
     # Define the exponential decay function
     def exp_decay(TE, S0, T2_star):
-        return S0[..., None] * torch.exp(-TE[None, None, None, :] / T2_star[..., None])
+        # Robustness: enforce strictly positive, non-zero S0 and T2* in the forward model
+        eps = torch.finfo(S0.dtype).eps
+        S0_safe = torch.clamp(S0, min=eps)
+        T2_star_safe = torch.clamp(T2_star, min=eps)
+
+        pred = S0_safe[..., None] * torch.exp(-TE[None, None, None, :] / T2_star_safe[..., None])
+
+        # Robustness: prevent NaN/Inf from propagating
+        pred = torch.nan_to_num(pred, nan=0.0, posinf=0.0, neginf=0.0)
+        return pred
 
     # Prepare initial guesses for S0 and T2* for all voxels
     S0_init = images[..., 0]
@@ -270,13 +280,18 @@ def t2_star_two_parametric_3D(TE_all, images, num_iterations=10000, initial_lr=0
     optimizer = torch.optim.Adam([params], lr=initial_lr)
 
     # Learning rate scheduler that reduces LR when loss stops improving
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=lr_decay_factor, patience=patience, verbose=True)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=lr_decay_factor, patience=patience)
 
     # Loss function
     def loss_function(params, TE, signal):
         S0, T2_star = params[:, 0], params[:, 1]
         predicted_signal = exp_decay(TE, S0, T2_star)
-        return torch.mean((signal - predicted_signal) ** 2)
+
+        loss = torch.mean((signal - predicted_signal) ** 2)
+
+        # Robustness: avoid NaN/Inf loss destabilizing optimizer/scheduler
+        loss = torch.nan_to_num(loss, nan=1e30, posinf=1e30, neginf=1e30)
+        return loss
 
     # Flatten the images to match the flattened params
     signal = images.reshape(-1, images.shape[-1])
@@ -290,6 +305,14 @@ def t2_star_two_parametric_3D(TE_all, images, num_iterations=10000, initial_lr=0
         loss = loss_function(params, TE, signal)
         loss.backward()
         optimizer.step()
+
+        # Robustness: enforce strictly positive, non-zero parameters after the update
+        # (keeps the same logic/flow; prevents T2* or S0 from becoming 0/negative)
+        with torch.no_grad():
+            eps = torch.finfo(params.dtype).eps
+            params[:, 0].clamp_(min=eps)  # S0
+            params[:, 1].clamp_(min=eps)  # T2*
+
         # Store the current loss value
         loss_values.append(loss.item())
         # Step the scheduler with the current loss
@@ -314,8 +337,13 @@ def t2_star_two_parametric_3D(TE_all, images, num_iterations=10000, initial_lr=0
         plt.show()
 
     print(f"Final loss: {loss_values[-1]}")
+    if return_RMSE:
+        recon_im = reconstruct_images(T2_star_map, S0_map, TE_all)
+        RMSE = calculate_rmse_percentage_s0(images.cpu().numpy(), recon_im, S0_map)
 
-    return T2_star_map, S0_map
+        return T2_star_map, S0_map, RMSE
+    else:
+        return T2_star_map, S0_map
 
 def t2_star_three_parametric_3D(TE_all, images, num_iterations=10000, initial_lr=0.01, lr_decay_factor=0.1, patience=100, initial_T2_star=20.0):
     """
@@ -424,11 +452,20 @@ def reconstruct_images(T2_star_map, S0_map, TE_all):
     S0_map = torch.tensor(S0_map, dtype=torch.float32).to(device)
     TE_all = torch.tensor(TE_all, dtype=torch.float32).to(device)
 
+    # Robustness: enforce strictly positive, non-zero S0 and T2*
+    eps = torch.finfo(torch.float32).eps
+    T2_star_safe = torch.clamp(T2_star_map, min=eps)
+    S0_safe = torch.clamp(S0_map, min=eps)
+
     # Reconstruct the images using the exponential decay __private_model
+    # (keep original logic: handle both 2D and 3D via try/except)
     try:
-        reconstructed_images = S0_map[..., None] * torch.exp(-TE_all[None, None, :] / T2_star_map[..., None])
+        reconstructed_images = S0_safe[..., None] * torch.exp(-TE_all[None, None, :] / T2_star_safe[..., None])
     except:
-        return S0_map[..., None] * torch.exp(-TE_all[None, None, None, :] / T2_star_map[..., None])
+        reconstructed_images = S0_safe[..., None] * torch.exp(-TE_all[None, None, None, :] / T2_star_safe[..., None])
+
+    # Robustness: prevent NaN/Inf from propagating to NumPy
+    reconstructed_images = torch.nan_to_num(reconstructed_images, nan=0.0, posinf=0.0, neginf=0.0)
 
     # Move back to CPU and convert to numpy array
     reconstructed_images = reconstructed_images.cpu().numpy()
@@ -448,6 +485,14 @@ def calculate_rmse_percentage_s0(original_images, reconstructed_images, S0_map):
     - rmse_percentage: RMSE as a percentage of S0.
     """
 
+    # Robustness: ensure numeric arrays and finite values
+    original_images = np.asarray(original_images, dtype=np.float32)
+    reconstructed_images = np.asarray(reconstructed_images, dtype=np.float32)
+    S0_map = np.asarray(S0_map, dtype=np.float32)
+
+    original_images = np.nan_to_num(original_images, nan=0.0, posinf=0.0, neginf=0.0)
+    reconstructed_images = np.nan_to_num(reconstructed_images, nan=0.0, posinf=0.0, neginf=0.0)
+
     # Calculate the squared error
     squared_error = (original_images - reconstructed_images) ** 2
 
@@ -457,8 +502,15 @@ def calculate_rmse_percentage_s0(original_images, reconstructed_images, S0_map):
     # Calculate the RMSE
     rmse = np.sqrt(mse)
 
+    # Robustness: enforce strictly positive, non-zero denominator for percentage-of-S0 normalization
+    eps = np.finfo(np.float32).eps
+    S0_safe = np.clip(S0_map, eps, None)
+
     # Calculate RMSE as a percentage of S0
-    rmse_percentage = 100 * (rmse / S0_map)
+    rmse_percentage = 100 * (rmse / S0_safe)
+
+    # Robustness: clean up any residual numeric pathologies
+    rmse_percentage = np.nan_to_num(rmse_percentage, nan=0.0, posinf=0.0, neginf=0.0)
 
     return rmse_percentage
 

@@ -1,7 +1,7 @@
 # File created by: Eisa Hedayati
 # Date: 1/3/2024
 # Description: This file is developed at CMRR
-
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy
 import numpy as np
@@ -136,7 +136,148 @@ def visualize_segmentation_slice(grayscale_image, segmentation_matrix, slice_num
 
 
 def plot_3D_mri(mri_image, slice_number=None, direction='sagittal', segmentation=None,
-                alpha=0.5, dpi=150, target_shape=None, m_cmap='gray', vmax=1000, vmin=0):
+                alpha=0.5, dpi=150, target_shape=None, m_cmap='gray', vmax=None, vmin=None):
+    backend = matplotlib.get_backend().lower()
+    interactive_backend = ("ipympl" in backend) or ("qt" in backend)
+
+    if not interactive_backend:
+        print("Note: interactive backend not detected; falling back to static redraw mode. Use %matplotlib widget if available")
+        return plot_3D_mri_inline(mri_image, slice_number, direction, segmentation,
+                                  alpha, dpi, target_shape, m_cmap, vmax, vmin)
+    else:
+        return plot_3D_mri_interactive(mri_image, slice_number, direction, segmentation,
+                                       alpha, dpi, target_shape, m_cmap, vmax, vmin)
+
+def plot_3D_mri_interactive(mri_image, slice_number=None, direction='sagittal', segmentation=None,
+                alpha=0.5, dpi=150, target_shape=None, m_cmap='gray', vmax=None, vmin=None):
+    """
+    Plots MRI slices with optional segmentation overlay, either as a single slice or with a slider.
+    Performance upgrade: in interactive mode, reuses a single figure and updates image data in-place.
+    """
+
+    if len(mri_image.shape) == 4:
+        mri_image = mri_image[..., 0]
+    if vmax is None:
+        vmax = np.nanmax(mri_image)
+    if vmin is None:
+        vmin = np.nanmin(mri_image)
+
+    # Determine slicing
+    if direction == 'axial':
+        max_slices = mri_image.shape[0]
+        slice_func = lambda i: (mri_image[i, :, :], segmentation[i, :, :] if segmentation is not None else None)
+    elif direction == 'coronal':
+        max_slices = mri_image.shape[1]
+        slice_func = lambda i: (mri_image[:, i, :], segmentation[:, i, :] if segmentation is not None else None)
+    elif direction == 'sagittal':
+        max_slices = mri_image.shape[2]
+        slice_func = lambda i: (mri_image[:, :, i], segmentation[:, :, i] if segmentation is not None else None)
+    else:
+        raise ValueError("Direction must be one of 'axial', 'coronal', or 'sagittal'.")
+
+    # Colormap for segmentation
+    colors = [(0, 0, 0, 0)]  # label 0 transparent
+    colors += [
+        (1, 0, 0, alpha), (0, 1, 0, alpha), (0, 0, 1, alpha), (1, 1, 0, alpha),
+        (1, 0, 1, alpha), (0, 1, 1, alpha), (1, 0.5, 0, alpha), (0.5, 0, 1, alpha),
+        (0, 1, 0.5, alpha), (1, 0.5, 0.5, alpha),
+        (0.6, 0.4, 0.2, alpha), (0, 0, 0.5, alpha), (0.5, 0.5, 0, alpha),
+        (0.5, 0.5, 0.5, alpha), (0.5, 0.5, 1, alpha), (1, 0.84, 0, alpha),
+        (1, 0.6, 0.6, alpha), (0.93, 0.51, 0.93, alpha), (0.75, 1, 0, alpha)
+    ]
+    cmap = ListedColormap(colors)
+
+    def get_slice(slice_index):
+        mri_slice, seg_slice = slice_func(slice_index)
+        if target_shape:
+            mri_slice = resize_matrix(mri_slice, target_shape)
+            if seg_slice is not None:
+                seg_slice = resize_matrix(seg_slice, target_shape)
+        return mri_slice, seg_slice
+
+    # --- Static mode (leave as-is) ---
+    if slice_number is not None:
+        mri_slice, seg_slice = get_slice(slice_number)
+
+        fig, ax = plt.subplots(figsize=(6, 6), dpi=dpi)
+        ax.imshow(mri_slice, cmap=m_cmap, vmin=vmin, vmax=vmax)
+        if seg_slice is not None:
+            ax.imshow(seg_slice, cmap=cmap, alpha=alpha)
+        ax.axis('off')
+
+        fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
+        ax.set_position([0, 0, 1, 1])
+
+        plt.show()
+        return
+
+    # --- Interactive mode: reuse one figure + update artists ---
+    slider = widgets.IntSlider(min=0, max=max_slices - 1, step=1, value=max_slices // 2)
+
+    # Button actions
+    def next_slice(_):
+        slider.value = min(slider.value + 1, max_slices - 1)
+
+    def prev_slice(_):
+        slider.value = max(slider.value - 1, 0)
+
+    button_next = widgets.Button(description="Next")
+    button_prev = widgets.Button(description="Previous")
+    button_next.on_click(next_slice)
+    button_prev.on_click(prev_slice)
+
+    # Wire slider -> update without recreating figures
+    def _on_slider_change(change):
+        if change.get("name") != "value":
+            return
+
+        idx = change["new"]
+        update_slice(idx)
+
+    slider.observe(_on_slider_change, names="value")
+
+    controls = HBox([button_prev, button_next, slider])
+    display(controls)
+
+    # Create initial figure once
+    init_mri, init_seg = get_slice(slider.value)
+    fig, ax = plt.subplots(figsize=(6, 6), dpi=dpi)
+    ax.axis('off')
+    fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
+    ax.set_position([0, 0, 1, 1])
+
+    mri_im = ax.imshow(init_mri, cmap=m_cmap, vmin=vmin, vmax=vmax)
+
+    seg_im = None
+    if init_seg is not None:
+        seg_im = ax.imshow(init_seg, cmap=cmap, alpha=alpha)
+
+    plt.show()
+
+
+    # Fast update function: only replace image buffers
+    def update_slice(slice_index):
+        mri_slice, seg_slice = get_slice(slice_index)
+
+        mri_im.set_data(mri_slice)
+
+        if segmentation is not None:
+            # If segmentation exists but seg_im not created (e.g., first slice empty), create it once.
+            nonlocal seg_im  # requires Python 3; if this errors in your setup, move seg_im into a mutable dict.
+            if seg_im is None and seg_slice is not None:
+                seg_im = ax.imshow(seg_slice, cmap=cmap, alpha=alpha)
+            elif seg_im is not None:
+                if seg_slice is None:
+                    # Hide overlay if seg_slice is absent for some reason
+                    seg_im.set_visible(False)
+                else:
+                    seg_im.set_visible(True)
+                    seg_im.set_data(seg_slice)
+
+        fig.canvas.draw_idle()
+
+def plot_3D_mri_inline(mri_image, slice_number=None, direction='sagittal', segmentation=None,
+                alpha=0.5, dpi=150, target_shape=None, m_cmap='gray', vmax=None, vmin=None):
     """
     Plots the MRI slices with optional segmentation overlay, either as a single slice or with a slider to navigate through slices.
 
@@ -151,6 +292,10 @@ def plot_3D_mri(mri_image, slice_number=None, direction='sagittal', segmentation
     """
     if len(mri_image.shape) == 4:
         mri_image = mri_image[..., 0]
+    if vmax is None:
+        vmax = np.nanmax(mri_image)
+    if vmin is None:
+        vmin = np.nanmin(mri_image)
     # Determine the number of slices and the appropriate slicing function
     if direction == 'axial':
         max_slices = mri_image.shape[0]
@@ -195,18 +340,22 @@ def plot_3D_mri(mri_image, slice_number=None, direction='sagittal', segmentation
     # Function to plot a specific slice
     def plot_slice(slice_index):
         mri_slice, seg_slice = slice_func(slice_index)
-        
+
         # Resize if target_shape is provided
         if target_shape:
             mri_slice = resize_matrix(mri_slice, target_shape)
             if seg_slice is not None:
                 seg_slice = resize_matrix(seg_slice, target_shape)
 
-        plt.figure(figsize=(6, 6), dpi=dpi)
-        plt.imshow(mri_slice, cmap=m_cmap, vmin=vmin, vmax=vmax)
+        fig, ax = plt.subplots(figsize=(6, 6), dpi=dpi)
+        ax.imshow(mri_slice, cmap=m_cmap, vmin=vmin, vmax=vmax)
         if seg_slice is not None:
-            plt.imshow(seg_slice, cmap=cmap, alpha=alpha)  # Overlay segmentation
-        plt.axis('off')
+            ax.imshow(seg_slice, cmap=cmap, alpha=alpha)
+        ax.axis('off')
+
+        fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
+        ax.set_position([0, 0, 1, 1])
+
         plt.show()
 
     # Check if a specific slice is to be visualized or if we are using an interactive slider
