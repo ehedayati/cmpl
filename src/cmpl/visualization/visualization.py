@@ -11,61 +11,94 @@ from matplotlib.colors import ListedColormap
 from cmpl.utilities.utils import resize_matrix
 from typing import List, Optional
 
+
+def get_vmin_vmax(images, vmin=None, vmax=None, ignore_nan=True):
+    """
+    Determine vmin/vmax for a list of images if not explicitly provided.
+    """
+    if vmin is not None and vmax is not None:
+        return vmin, vmax
+
+    imgs = np.asarray(images, dtype=float)
+
+    if ignore_nan:
+        data_min = np.nanmin(imgs)
+        data_max = np.nanmax(imgs)
+    else:
+        data_min = imgs.min()
+        data_max = imgs.max()
+
+    vmin = data_min if vmin is None else vmin
+    vmax = data_max if vmax is None else vmax
+
+    return vmin, vmax
+
+def _get_valid_cmap(color_palette: str):
+    available = plt.colormaps()
+
+    if color_palette in available:
+        return color_palette
+
+    # Fallback
+    print(
+        f"[side_by_side_view] Warning: invalid colormap '{color_palette}'. "
+        "Falling back to 'gray'."
+    )
+    return 'gray'
+
+
 def side_by_side_view(*images: np.ndarray,
                       color_palette: str = 'gray',
                       dpi: int = 100,
-                      titles: Optional[List[str]] = None):
+                      titles: Optional[List[str]] = None,
+                      show_colorbar: bool = True, force_square: bool = False, vmin=None, vmax=None):
     """
-    Display multiple images side by side.
-
-    Args:
-        *images (numpy.ndarray): A variable number of images to display. Each image should be a 2D array
-                                 (or 3D if needed, with shape (height, width, channels)).
-        color_palette (str, optional): The color palette to use for displaying the images.
-                                       Defaults to 'gray'. If 'gray', images are displayed in grayscale.
-                                       Other color palettes can be specified.
-        dpi (int, optional): Dots per inch for the plot.
-        titles (Optional[List[str]], optional): A list of titles for the images.
-                                                If not provided or if its length doesn't match the number of images,
-                                                default titles will be generated.
-
-    Note:
-        - If an image is not square (height != width), it will be resized to a square shape
-          using the provided 'resize_matrix' function before being displayed.
-        - The function creates a subplot with 1 row and as many columns as images, displaying each image in its own subplot.
+    Display multiple images side by side with an optional shared colorbar.
     """
-    # Convert the tuple of images to a list for easier handling.
     images_list = list(images)
     n_images = len(images_list)
+
+    vmin, vmax = get_vmin_vmax(images_list[0], vmin, vmax)
 
     if n_images == 0:
         raise ValueError("At least one image must be provided.")
 
-    # Generate default titles if none provided or if the list length doesn't match the number of images.
     if titles is None or len(titles) != n_images:
         titles = [f"image {i+1}" for i in range(n_images)]
 
-    # Create a figure with 1 row and n_images columns.
-    fig, axs = plt.subplots(1, n_images, figsize=(5 * n_images, 5))
-    fig.dpi = dpi
+    fig, axs = plt.subplots(
+        1, n_images,
+        figsize=(5 * n_images, 5),
+        dpi=dpi,
+        constrained_layout=True
+    )
 
-    # If there's only one image, make axs a list to simplify looping.
     if n_images == 1:
         axs = [axs]
 
-    # Set the colormap.
-    cmap = 'gray' if color_palette == 'gray' else color_palette
+    cmap = _get_valid_cmap(color_palette)
+
+    im = None  # keep handle for colorbar
 
     for idx, (img, title) in enumerate(zip(images_list, titles)):
-        # If the image is not square, resize it.
-        if img.shape[0] != img.shape[1]:
-            img = resize_matrix(img)
+        if force_square:
+            if img.shape[0] != img.shape[1]:
+                img = resize_matrix(img)
 
-        axs[idx].imshow(img, cmap=cmap)
+        im = axs[idx].imshow(img, cmap=cmap, vmin=vmin, vmax=vmax)
         axs[idx].axis('off')
         axs[idx].set_title(title)
 
-    plt.tight_layout()
+    if show_colorbar and im is not None:
+        cbar = fig.colorbar(
+            im,
+            ax=axs,
+            fraction=0.025,
+            pad=0.02
+        )
+        cbar.ax.tick_params(labelsize=8)
+
+    # plt.tight_layout()
     plt.show()
 
     

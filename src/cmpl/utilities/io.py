@@ -9,7 +9,66 @@ import SimpleITK as sitk
 from collections import defaultdict
 
 
-def nifti_read(file_name, re_orient=True):
+def save_scalar_map_like(ref_img: nib.Nifti1Image,
+                         data_in: np.ndarray,
+                         out_path: str,
+                         *,
+                         dtype=np.float32,
+                         descrip: str = "",
+                         intent_name: str = "") -> None:
+    """
+    Save a 3D scalar NIfTI map using ref_img geometry (affine/qform/sform).
+    - Accepts (X,Y,Z) or (X,Y,Z,1[,1...]) and writes (X,Y,Z).
+    - Forces scalar intent and sane scaling.
+    """
+    data = np.asarray(data_in)
+
+    # Reduce trailing singleton dims only: (X,Y,Z,1,1,...) -> (X,Y,Z)
+    while data.ndim > 3 and data.shape[-1] == 1:
+        data = data[..., 0]
+
+    if data.ndim != 3:
+        raise ValueError(f"Expected 3D scalar after squeezing trailing 1s, got shape {data.shape}")
+
+    ref_shape_3d = ref_img.shape[:3]
+    if data.shape != ref_shape_3d:
+        raise ValueError(f"Data shape {data.shape} != reference 3D shape {ref_shape_3d}")
+
+    data = data.astype(dtype, copy=False)
+
+    hdr = ref_img.header.copy()
+    hdr.set_data_dtype(dtype)
+    hdr.set_data_shape(data.shape)  # ensures dim is 3D scalar
+
+    # Scalar map intent
+    hdr["intent_code"] = 0  # NIFTI_INTENT_NONE
+    hdr["intent_p1"] = 0
+    hdr["intent_p2"] = 0
+    hdr["intent_p3"] = 0
+    hdr["intent_name"] = (intent_name.encode("ascii", "ignore")[:15] if intent_name else b"")
+
+    # Avoid NaN slope/inter
+    hdr["scl_slope"] = 1.0
+    hdr["scl_inter"] = 0.0
+
+    if descrip:
+        hdr["descrip"] = descrip.encode("ascii", "ignore")[:79]
+
+    out_img = nib.Nifti1Image(data, ref_img.affine, header=hdr)
+
+    # Preserve qform/sform
+    qaff, qcode = ref_img.get_qform(coded=True)
+    saff, scode = ref_img.get_sform(coded=True)
+    if qaff is not None:
+        out_img.set_qform(qaff, int(qcode))
+    if saff is not None:
+        out_img.set_sform(saff, int(scode))
+
+    nib.save(out_img, out_path)
+    print(f"Saved {out_path} | shape={out_img.shape} dtype={out_img.get_data_dtype()}")
+
+
+def nifti_read(file_name, re_orient=False):
     O = lambda MAT: np.rot90(MAT[:, ::-1, :], k=1, axes=(0, 1))[:,:,::-1]
     nifti = nib.load(file_name)
     if re_orient:
@@ -186,35 +245,54 @@ def load_dicom_scan_from_dir(directory, reshape=True, verbose=False, with_spacin
     else:
         return image_data
 
-def update_nifti_data(file_path, new_data, output_path=None):
-    """
-    Load a NIfTI file, replace its data with new_data, and save it.
+import nibabel as nib
+import numpy as np
 
-    Args:
-    file_path (str): Path to the original NIfTI file.
-    new_data (numpy.ndarray): New data array to replace the existing NIfTI data.
-    output_path (str, optional): Path to save the updated NIfTI file. If None, it overwrites the original file.
-
-    Returns:
-    nib.Nifti1Image: The updated NIfTI image object.
+def update_nifti_data(file_path, new_data, output_path=None, dtype=np.float32):
     """
-    # Load the existing NIfTI file
+    Replace the data of a NIfTI file while preserving geometry and metadata safely.
+    """
+
+    # Load existing NIfTI
     nifti = nib.load(file_path)
 
-    # Validate the new data dimensions
-    # if new_data.shape != nifti.shape:
-    #     raise ValueError("New data must have the same shape as the original NIfTI data.")
+    # Ensure numpy array
+    new_data = np.asarray(new_data)
 
-    # Create a new NIfTI image object with the new data and the same header
-    new_nifti = nib.Nifti1Image(new_data, affine=nifti.affine, header=nifti.header)
+    # Shape check (recommended)
+    if new_data.shape != nifti.shape:
+        raise ValueError(
+            f"Shape mismatch: new_data {new_data.shape} != nifti {nifti.shape}"
+        )
 
-    # Save the new NIfTI image to disk
+    # Copy header to avoid mutating original
+    header = nifti.header.copy()
+
+    # Reset scaling to avoid intensity bugs
+    header.set_slope_inter(None, None)
+
+    # Set dtype explicitly
+    new_data = new_data.astype(dtype)
+    header.set_data_dtype(dtype)
+
+    # Create new NIfTI
+    new_nifti = nib.Nifti1Image(
+        new_data,
+        affine=nifti.affine,
+        header=header
+    )
+
+    # Update header consistency
+    new_nifti.update_header()
+
+    # Save
     if output_path is None:
-        output_path = file_path  # Overwrite the original file if no output path is specified
+        output_path = file_path
+
     nib.save(new_nifti, output_path)
 
-    print(f"Updated NIfTI file saved to {output_path}")
     return new_nifti
+
 
 def dicom_to_SimpleITK(dicom_directory):
     """

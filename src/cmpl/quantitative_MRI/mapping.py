@@ -228,7 +228,7 @@ def t2_star_three_parametric_2D(TE_all, images, num_iterations=10000, initial_lr
     return T2_star_map, S0_map, C_map, loss_values
 
 def t2_star_two_parametric_3D(TE_all, images, num_iterations=10000, initial_lr=0.01,
-                              lr_decay_factor=0.1, patience=100, initial_T2_star=20.0, plot_error=True, return_RMSE=False):
+                              lr_decay_factor=0.1, patience=100, initial_T2_star=20.0, plot_error=True, return_RMSE=False,loss_fn=None, device=None):
     """
     Computes the T2* and S0 maps from MRI images using an exponential decay __private_model.
     Also tracks and plots the loss during optimization, with learning rate adjustment.
@@ -247,12 +247,18 @@ def t2_star_two_parametric_3D(TE_all, images, num_iterations=10000, initial_lr=0
     - T2_star_map: A numpy array containing the T2* values for each voxel (x, y, z).
     - S0_map: A numpy array containing the S0 values for each voxel (x, y, z).
     """
+    if not device:
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    # Default loss if user doesn't provide one
+    if loss_fn is None:
+        def loss_fn(signal, pred):
+            return torch.mean((signal - pred) ** 2)
     torch.set_grad_enabled(True)
     # Convert echo times to a torch tensor and move to GPU
-    TE = torch.tensor(TE_all, dtype=torch.float32).cuda()
+    TE = torch.tensor(TE_all, dtype=torch.float32).to(device)
 
     # Convert images to torch tensor and move to GPU
-    images = torch.tensor(images, dtype=torch.float32).cuda()
+    images = torch.tensor(images, dtype=torch.float32).to(device)
 
     # Define the exponential decay function
     def exp_decay(TE, S0, T2_star):
@@ -269,7 +275,7 @@ def t2_star_two_parametric_3D(TE_all, images, num_iterations=10000, initial_lr=0
 
     # Prepare initial guesses for S0 and T2* for all voxels
     S0_init = images[..., 0]
-    T2_star_init = torch.full(S0_init.shape, initial_T2_star, dtype=torch.float32).cuda()
+    T2_star_init = torch.full(S0_init.shape, initial_T2_star, dtype=torch.float32).to(device)
 
     # Parameters to be optimized: S0 and T2* for all voxels
     params = torch.stack([S0_init, T2_star_init], dim=-1)
@@ -283,14 +289,21 @@ def t2_star_two_parametric_3D(TE_all, images, num_iterations=10000, initial_lr=0
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=lr_decay_factor, patience=patience)
 
     # Loss function
+
     def loss_function(params, TE, signal):
         S0, T2_star = params[:, 0], params[:, 1]
         predicted_signal = exp_decay(TE, S0, T2_star)
 
-        loss = torch.mean((signal - predicted_signal) ** 2)
+        # User-supplied fidelity term
+        loss = loss_fn(signal, predicted_signal)
 
         # Robustness: avoid NaN/Inf loss destabilizing optimizer/scheduler
         loss = torch.nan_to_num(loss, nan=1e30, posinf=1e30, neginf=1e30)
+
+        # (Optional but recommended) enforce scalar
+        if loss.ndim != 0:
+            loss = loss.mean()
+
         return loss
 
     # Flatten the images to match the flattened params
@@ -322,8 +335,8 @@ def t2_star_two_parametric_3D(TE_all, images, num_iterations=10000, initial_lr=0
     S0_map, T2_star_map = params[:, 0].reshape(images.shape[:-1]), params[:, 1].reshape(images.shape[:-1])
 
     # Convert the results back to CPU and numpy arrays for returning
-    T2_star_map = T2_star_map.detach().cpu().numpy()
-    S0_map = S0_map.detach().cpu().numpy()
+    T2_star_map = T2_star_map.detach()#.cpu().numpy()
+    S0_map = S0_map.detach()#.cpu().numpy()
 
     # Plot the loss values over iterations
     if plot_error:
@@ -339,11 +352,26 @@ def t2_star_two_parametric_3D(TE_all, images, num_iterations=10000, initial_lr=0
     print(f"Final loss: {loss_values[-1]}")
     if return_RMSE:
         recon_im = reconstruct_images(T2_star_map, S0_map, TE_all)
-        RMSE = calculate_rmse_percentage_s0(images.cpu().numpy(), recon_im, S0_map)
 
-        return T2_star_map, S0_map, RMSE
+        rmse_pct, rse_pct = calculate_rmse_percentage_s0(
+            images,
+            recon_im,
+            S0_map,
+            return_numpy=False,
+        )
+
+        return {
+            "T2_star_map": T2_star_map,
+            "S0_map": S0_map,
+            "RMSE_percentage": rmse_pct,
+            "RSE_percentage": rse_pct,
+        }
+
     else:
-        return T2_star_map, S0_map
+        return {
+            "T2_star_map": T2_star_map,
+            "S0_map": S0_map,
+        }
 
 def t2_star_three_parametric_3D(TE_all, images, num_iterations=10000, initial_lr=0.01, lr_decay_factor=0.1, patience=100, initial_T2_star=20.0):
     """
@@ -433,86 +461,177 @@ def t2_star_three_parametric_3D(TE_all, images, num_iterations=10000, initial_lr
 
     return T2_star_map, S0_map
 
-def reconstruct_images(T2_star_map, S0_map, TE_all):
+def reconstruct_images(
+    T2_star_map,
+    S0_map,
+    TE_all,
+    device=None,
+    return_numpy=False,
+    dtype=torch.float32,
+):
     """
-    Reconstructs the images using the T2_star_map and S0_map.
+    Reconstruct magnitude images from T2* and S0 maps.
 
-    Parameters:
-    - T2_star_map: A numpy array containing the T2* values for each voxel.
-    - S0_map: A numpy array containing the S0 values for each voxel.
-    - TE_all: A list or numpy array of echo times (TE) in milliseconds.
+    Accepts:
+        numpy arrays or torch tensors
 
     Returns:
-    - reconstructed_images: A numpy array containing the reconstructed images.
+        torch tensor (default) or numpy array if return_numpy=True
+
+    Output shape:
+        (..., TE)
     """
 
-    # Convert to torch tensors and move to GPU if available
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    T2_star_map = torch.tensor(T2_star_map, dtype=torch.float32).to(device)
-    S0_map = torch.tensor(S0_map, dtype=torch.float32).to(device)
-    TE_all = torch.tensor(TE_all, dtype=torch.float32).to(device)
+    # ---------- device selection ----------
+    if device is None:
+        if torch.is_tensor(T2_star_map):
+            device = T2_star_map.device
+        elif torch.is_tensor(S0_map):
+            device = S0_map.device
+        else:
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Robustness: enforce strictly positive, non-zero S0 and T2*
-    eps = torch.finfo(torch.float32).eps
+    device = torch.device(device)
+
+    # ---------- safe conversion helper ----------
+    def to_torch(x):
+
+        if torch.is_tensor(x):
+
+            if x.device != device:
+                x = x.to(device)
+
+            if x.dtype != dtype:
+                x = x.to(dtype)
+
+            return x
+
+        return torch.as_tensor(x, dtype=dtype, device=device)
+
+
+    T2_star_map = to_torch(T2_star_map)
+    S0_map      = to_torch(S0_map)
+    TE_all      = to_torch(TE_all)
+
+
+    # ---------- numeric safety ----------
+    eps = torch.finfo(dtype).eps
+
     T2_star_safe = torch.clamp(T2_star_map, min=eps)
-    S0_safe = torch.clamp(S0_map, min=eps)
+    S0_safe      = torch.clamp(S0_map,      min=eps)
 
-    # Reconstruct the images using the exponential decay __private_model
-    # (keep original logic: handle both 2D and 3D via try/except)
-    try:
-        reconstructed_images = S0_safe[..., None] * torch.exp(-TE_all[None, None, :] / T2_star_safe[..., None])
-    except:
-        reconstructed_images = S0_safe[..., None] * torch.exp(-TE_all[None, None, None, :] / T2_star_safe[..., None])
 
-    # Robustness: prevent NaN/Inf from propagating to NumPy
-    reconstructed_images = torch.nan_to_num(reconstructed_images, nan=0.0, posinf=0.0, neginf=0.0)
+    # ---------- correct broadcasting ----------
+    # Works for ANY spatial dimension count
 
-    # Move back to CPU and convert to numpy array
-    reconstructed_images = reconstructed_images.cpu().numpy()
+    TE = TE_all.view(*([1] * T2_star_safe.ndim), -1)
 
-    return reconstructed_images
+    reconstructed = S0_safe.unsqueeze(-1) * torch.exp(-TE / T2_star_safe.unsqueeze(-1))
 
-def calculate_rmse_percentage_s0(original_images, reconstructed_images, S0_map):
+
+    # ---------- cleanup ----------
+    reconstructed = torch.nan_to_num(
+        reconstructed,
+        nan=0.0,
+        posinf=0.0,
+        neginf=0.0,
+    )
+
+
+    if return_numpy:
+
+        return reconstructed.detach().cpu().numpy()
+
+    return reconstructed
+
+def calculate_rmse_percentage_s0(
+    original_images,
+    reconstructed_images,
+    S0_map,
+    *,
+    device=None,
+    return_numpy: bool = False,
+    dtype=torch.float32,
+):
     """
-    Calculates the RMSE in percentage of S0 between the original and reconstructed images.
+    RMSE (across TE) normalized by S0, returned as percent of S0.
 
-    Parameters:
-    - original_images: A numpy array containing the original images.
-    - reconstructed_images: A numpy array containing the reconstructed images.
-    - S0_map: A numpy array containing the S0 values for each voxel.
+    Accepts:
+      - NumPy arrays or torch tensors for inputs
+      - original_images/reconstructed_images shape: (..., TE)
+      - S0_map shape: (...) matching spatial dims (no TE)
 
     Returns:
-    - rmse_percentage: RMSE as a percentage of S0.
+      rmse_pct: (...), percent of S0
+      rse_pct: (..., TE), per-echo sqrt squared error percent of S0
+
+    Notes:
+      - Keeps ops in torch to avoid CPU/GPU ping-pong.
+      - Device selection:
+          * If any input is a torch tensor, uses its device (prefers original_images, then reconstructed_images, then S0_map)
+          * Else uses `device` if provided, otherwise auto-selects cuda if available.
     """
 
-    # Robustness: ensure numeric arrays and finite values
-    original_images = np.asarray(original_images, dtype=np.float32)
-    reconstructed_images = np.asarray(reconstructed_images, dtype=np.float32)
-    S0_map = np.asarray(S0_map, dtype=np.float32)
+    # -------- helpers --------
+    def _pick_device():
+        for x in (original_images, reconstructed_images, S0_map):
+            if torch.is_tensor(x):
+                return x.device
+        if device is not None:
+            return torch.device(device) if not isinstance(device, torch.device) else device
+        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    original_images = np.nan_to_num(original_images, nan=0.0, posinf=0.0, neginf=0.0)
-    reconstructed_images = np.nan_to_num(reconstructed_images, nan=0.0, posinf=0.0, neginf=0.0)
+    def _to_torch(x, dev):
+        if torch.is_tensor(x):
+            # Move only if needed; avoid unnecessary copies
+            if x.device != dev:
+                x = x.to(dev)
+            if x.dtype != dtype:
+                x = x.to(dtype=dtype)
+            return x
+        # NumPy / list -> torch (one copy onto device)
+        return torch.as_tensor(x, dtype=dtype, device=dev)
 
-    # Calculate the squared error
-    squared_error = (original_images - reconstructed_images) ** 2
+    dev = _pick_device()
 
-    # Calculate the mean squared error (MSE) across the TE dimension
-    mse = np.mean(squared_error, axis=-1)
+    # -------- convert inputs (minimal transfers) --------
+    orig = _to_torch(original_images, dev)
+    recon = _to_torch(reconstructed_images, dev)
+    s0   = _to_torch(S0_map, dev)
 
-    # Calculate the RMSE
-    rmse = np.sqrt(mse)
+    # -------- sanitize numeric pathologies --------
+    # nan_to_num exists in torch; keep on-device
+    orig = torch.nan_to_num(orig, nan=0.0, posinf=0.0, neginf=0.0)
+    recon = torch.nan_to_num(recon, nan=0.0, posinf=0.0, neginf=0.0)
+    # s0: keep as-is except for denom safety
+    # (If you want to zero-out negatives instead, do: s0 = torch.clamp(s0, min=0.0))
 
-    # Robustness: enforce strictly positive, non-zero denominator for percentage-of-S0 normalization
-    eps = np.finfo(np.float32).eps
-    S0_safe = np.clip(S0_map, eps, None)
+    # -------- compute errors --------
+    # squared_error: (..., TE)
+    squared_error = (orig - recon) ** 2
 
-    # Calculate RMSE as a percentage of S0
-    rmse_percentage = 100 * (rmse / S0_safe)
+    # mse across TE -> (...), rmse -> (...)
+    mse = squared_error.mean(dim=-1)
+    rmse = torch.sqrt(mse)
 
-    # Robustness: clean up any residual numeric pathologies
-    rmse_percentage = np.nan_to_num(rmse_percentage, nan=0.0, posinf=0.0, neginf=0.0)
+    # per-echo root squared error -> (..., TE)
+    rse = torch.sqrt(squared_error)
 
-    return rmse_percentage
+    # -------- denom safety & broadcasting --------
+    eps = torch.finfo(dtype).eps
+    s0_safe = torch.clamp(s0, min=eps)          # (...) no TE
+    rmse_pct = 100.0 * (rmse / s0_safe)         # (...) broadcasts fine
+    rse_pct  = 100.0 * (rse / s0_safe.unsqueeze(-1))  # (..., TE)
+
+    # final cleanup (should be mostly unnecessary, but cheap)
+    rmse_pct = torch.nan_to_num(rmse_pct, nan=0.0, posinf=0.0, neginf=0.0)
+    rse_pct  = torch.nan_to_num(rse_pct,  nan=0.0, posinf=0.0, neginf=0.0)
+
+    if return_numpy:
+        # One-time transfer at the end (still minimal)
+        return rmse_pct.detach().cpu().numpy(), rse_pct.detach().cpu().numpy()
+
+    return rmse_pct, rse_pct
 
 def _print_last_non_nan(lst):
     # Iterate over the list in reverse order
