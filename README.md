@@ -1,210 +1,496 @@
 # CMPL — CMRR MRI Processing Libraries
 
-CMPL (CMRR MRI Processing Libraries) is a research-oriented Python toolkit for MRI data I/O, reconstruction, quantitative mapping, segmentation utilities, and visualization. It focuses on practical building blocks that can be composed into MRI processing workflows.
+[![PyPI](https://img.shields.io/pypi/v/cmpl.svg)](https://pypi.org/project/cmpl/)
+[![Python](https://img.shields.io/pypi/pyversions/cmpl.svg)](https://pypi.org/project/cmpl/)
 
-- Project homepage: this repository
-- License: see LICENSE
-- Python: >= 3.10
+CMPL is a Python package for MRI processing workflows developed at CMRR. It provides tools for MRI reconstruction, quantitative MRI, visualization, DICOM/NIfTI I/O, and supporting numerical/data utilities.
+
+CMPL is organized as a modular library: the base installation stays lightweight, while larger or domain-specific dependencies are installed only when the corresponding functionality is needed.
+
+## Highlights
+
+- Parallel MRI reconstruction with 1D/2D GRAPPA and conjugate-gradient SENSE
+- Quantitative MRI tools for T2* fitting, signal reconstruction, and fitting-error analysis
+- MRI visualization utilities for 2D comparisons, 3D volume browsing, and segmentation overlays
+- DICOM, enhanced-DICOM, NIfTI, and SimpleITK utilities
+- Lightweight numerical utilities shared across CMPL
+- Optional pandas-based indexing for CMPL-style medical-data directory structures
+- Lazy package imports so `import cmpl` does not eagerly load large optional dependencies
+- Backward-compatible convenience aliases such as `cmpl.recon`, `cmpl.qmr`, `cmpl.vis`, and `cmpl.utils`
+
+## Requirements
+
+CMPL requires:
+
+- Python >= 3.10
+- NumPy >= 1.26, < 3
+- SciPy >= 1.13, < 2
+- tqdm >= 4.66
+
+Additional dependencies are installed through optional extras.
 
 ## Installation
-CMPL is published as a Python package. A standard installation will also install the required dependencies listed in pyproject.toml.
+
+Install the lightweight base package:
 
 ```bash
-pip install cmpl
+python -m pip install cmpl
 ```
 
-Notes
-- Some features require optional system libraries (e.g., SimpleITK) and a working CUDA-enabled PyTorch if you plan to use GPU-accelerated routines (quantitative mapping functions currently expect CUDA tensors).
-- If you use Jupyter for visualization widgets, ensure ipywidgets is enabled in your environment.
+Install only the functionality you need:
 
-## Package overview
-CMPL exposes the following top-level namespaces for convenience (via cmpl.__init__):
-- cmpl.utilities (alias cmpl.utils)
-- cmpl.visualization (alias cmpl.vis)
-- cmpl.segmentation (alias cmpl.seg)
-- cmpl.quantitative_MRI (alias cmpl.qmr)
-- cmpl.reconstruction (alias cmpl.recon)
+| Extra | Purpose |
+| --- | --- |
+| `io` | DICOM, NIfTI, HDF5, and SimpleITK I/O |
+| `data` | pandas-based data indexing |
+| `viz` | Matplotlib and Jupyter visualization |
+| `torch` | PyTorch-based reconstruction and quantitative MRI |
+| `all` | All optional functionality declared by CMPL |
+| `dev` | Testing, linting, build, and release tools |
 
-You can also access the package version at runtime:
+Examples:
+
+```bash
+python -m pip install "cmpl[io]"
+python -m pip install "cmpl[viz]"
+python -m pip install "cmpl[torch]"
+python -m pip install "cmpl[io,data,viz,torch]"
+python -m pip install "cmpl[all]"
+```
+
+Quantitative-MRI fitting currently uses both PyTorch and Matplotlib, so for qMRI workflows install:
+
+```bash
+python -m pip install "cmpl[torch,viz]"
+```
+
+## Quick start
+
 ```python
 import cmpl
+
 print(cmpl.__version__)
 ```
 
-## Key features and APIs
+CMPL exposes convenient aliases for commonly used subpackages:
 
-### 1) MRI k-space reconstruction (GRAPPA, SENSE)
-Location: src/cmpl/reconstruction
+```python
+cmpl.recon   # reconstruction
+cmpl.qmr     # quantitative MRI
+cmpl.vis     # visualization
+cmpl.utils   # utilities
+cmpl.io      # I/O utilities
+```
 
-GRAPPA (Generalized Autocalibrating Partially Parallel Acquisitions)
-- 1D GRAPPA: cmpl.reconstruction.grappa.grappa_1D.grappa_1d_recon
-- 2D GRAPPA: cmpl.reconstruction.grappa.grappa_2D.grappa_2d_recon
+The aliases are resolved lazily, so importing CMPL itself does not require every optional dependency to be loaded.
 
-Axis ordering for GRAPPA
-- Expected k-space shape: [frequency, phase, slice, coils]
-- For 1D GRAPPA, a 3D variant is supported via is3D flag; internally, slices are handled along the third dimension.
-- The undersampled k-space must contain acquired data in the 0th column of the undersampled positions.
+## Visualization
 
-Example — 1D GRAPPA (slice-wise)
+Install the visualization extra:
+
+```bash
+python -m pip install "cmpl[viz]"
+```
+
+### Browse or display a 3D MRI volume
+
+```python
+from cmpl.visualization import plot_3D_mri
+
+plot_3D_mri(
+    volume,
+    slice_number=volume.shape[2] // 2,
+    alpha=0.5,
+    direction="sagittal",
+    cmap="gray",
+    vmin=0,
+    vmax=1,
+    dpi=300,
+)
+```
+
+If an interactive Matplotlib backend is available, `plot_3D_mri` can use interactive controls. Otherwise it falls back to static redraw mode.
+
+
+### Compare images side by side
+
+```python
+from cmpl.visualization import side_by_side_view
+
+side_by_side_view(
+    image_a,
+    image_b,
+    titles=["Reference", "Reconstruction"],
+    color_palette="gray",
+)
+```
+
+### Overlay a segmentation
+
+```python
+from cmpl.visualization import visualize_segmentation_slice
+
+visualize_segmentation_slice(
+    grayscale_image,
+    segmentation,
+    slice_number=20,
+    dimension="axial",
+)
+```
+
+## Quantitative MRI
+
+Quantitative MRI functionality is available under:
+
+```python
+cmpl.qmr
+```
+
+Install the PyTorch and visualization dependencies:
+
+```bash
+python -m pip install "cmpl[torch,viz]"
+```
+
+### Reconstruct a multi-echo signal from T2* and S0 maps
+
 ```python
 import numpy as np
-from cmpl.reconstruction.grappa.grappa_1D import grappa_1d_recon
 
-# calibration_kspace, undersampled_kspace: complex64 numpy arrays of shape [freq, phase, slices, coils]
-R = 2                    # reduction factor along phase-encode
-kx, ky = 5, 3            # kernel size (height, width)
-recon_kspace = grappa_1d_recon(calibration_kspace, undersampled_kspace, R, kx, ky, is3D=False)
+from cmpl.quantitative_MRI import reconstruct_images
+
+t2_star = np.full((64, 64, 8), 20.0, dtype=np.float32)
+s0 = np.full((64, 64, 8), 100.0, dtype=np.float32)
+echo_times = np.array([0.0, 5.0, 10.0, 15.0], dtype=np.float32)
+
+images = reconstruct_images(
+    t2_star,
+    s0,
+    echo_times,
+    device="cpu",
+    return_numpy=True,
+)
+
+print(images.shape)
+# (64, 64, 8, 4)
 ```
 
-Example — 2D GRAPPA (accelerated in two phase directions)
+The signal model is:
+
+```text
+S(TE) = S0 * exp(-TE / T2*)
+```
+
+### Fit a 3D two-parameter T2* model
+
 ```python
-import numpy as np
-from cmpl.reconstruction.grappa.grappa_2D import grappa_2d_recon
+from cmpl.quantitative_MRI import t2_star_two_parametric_3D
 
-# calibration_kspace, undersampled_kspace: complex64 numpy arrays of shape [freq, phase, slice, coils]
-kernel_size = (5, 3, 3)            # (height, width, depth) in k-space blocks
-reduction_factors = (2, 2)         # (phase_undersampling, slice_undersampling)
-recon_kspace = grappa_2d_recon(calibration_kspace, undersampled_kspace, kernel_size, reduction_factors)
+result = t2_star_two_parametric_3D(
+    echo_times,
+    images,
+    num_iterations=1000,
+    initial_lr=0.01,
+    initial_T2_star=20.0,
+    plot_error=False,
+    device="cpu",
+)
+
+t2_star_map = result["T2_star_map"]
+s0_map = result["S0_map"]
 ```
 
-SENSE (CG-SENSE 2D)
-- cmpl.reconstruction.sense.cg.CG_sense_2D(undersampled_image_space, coil_sensitivity, dims=[-3, -2])
-- Input/Output are torch.complex tensors. A binary mask is inferred as (undersampled_image_space != 0).
+If CUDA is available and no device is supplied, the function can select a CUDA device automatically. CUDA usage will increase computation speed significantly.
 
-Example — CG-SENSE (2D)
+### Calculate normalized fitting error
+
 ```python
-import torch as pt
-from cmpl.reconstruction.sense.cg import CG_sense_2D
+from cmpl.quantitative_MRI import calculate_rmse_percentage_s0
 
-# undersampled_image_space: complex tensor [..., x, y, coils]
-# coil_sensitivity: complex tensor [..., x, y, coils]
-final_recon = CG_sense_2D(undersampled_image_space, coil_sensitivity, dims=[-3, -2])
+rmse_pct, rse_pct = calculate_rmse_percentage_s0(
+    original_images,
+    reconstructed_images,
+    s0_map,
+    return_numpy=True,
+)
 ```
 
-Utility — Convert k-space to image space
+CMPL also contains two- and three-parameter 2D/3D T2* fitting functions.
+
+## Reconstruction
+
+Reconstruction functionality is available under:
+
 ```python
-import numpy as np
-from cmpl.utilities.utils import kspace_to_image_space
-
-# kspace: shape [..., coils] (coil dimension may be last or specified via coil_column_loc)
-combined_image, coil_images = kspace_to_image_space(kspace, fourier_dims=[0,1,2], coil_column_loc=-1, return_coil_images=True)
+cmpl.recon
 ```
 
-### 2) Quantitative MRI — T2* mapping
-Location: src/cmpl/quantitative_MRI/mapping.py
+PyTorch is required for the current reconstruction implementations:
 
-Functions (GPU expected; uses PyTorch CUDA internally)
-- t2_star_two_parametric_2D(TE_all, images, ...)
-  - images shape: (x, y, TE)
-  - returns (T2_star_map, S0_map)
-- t2_star_three_parametric_2D(TE_all, images, ...)
-  - images shape: (x, y, TE); includes an offset C parameter
-  - returns (T2_star_map, S0_map, C_map)
-- t2_star_two_parametric_3D(TE_all, images, ...)
-  - images shape: (x, y, z, TE)
-- t2_star_three_parametric_3D(TE_all, images, ...)
-  - images shape: (x, y, z, TE)
-- reconstruct_images(T2_star_map, S0_map, TE_all)
-- calculate_rmse_percentage_s0(original_images, reconstructed_images, S0_map)
+```bash
+python -m pip install "cmpl[torch]"
+```
 
-Example — 2D two-parameter T2*
+### 1D GRAPPA
+
 ```python
-import numpy as np
-from cmpl.quantitative_MRI.mapping import t2_star_two_parametric_2D
+from cmpl.reconstruction.grappa import grappa_1d_recon
 
-TE_all = np.array([3.5, 8.0, 12.5, 17.0], dtype=np.float32)
-images = np.random.rand(256, 256, len(TE_all)).astype(np.float32)
-T2_star_map, S0_map = t2_star_two_parametric_2D(TE_all, images, num_iterations=2000, initial_lr=0.01)
+reconstructed_kspace = grappa_1d_recon(
+    calibration_kspace,
+    undersampled_kspace,
+    reduction_factor=2,
+    kx=3,
+    ky=3,
+)
 ```
 
-GPU requirement
-- These functions call .cuda() on tensors. Ensure a CUDA-enabled PyTorch installation and a supported GPU.
+`calibration_kspace` and `undersampled_kspace` are expected to contain coil-resolved k-space data. The current implementation uses the ordering:
 
-### 3) Segmentation utilities
-Location: src/cmpl/segmentation
+```text
+frequency, phase, slice, coils
+```
 
-- tools.py: Projection helpers for 3D label volumes; reading/writing NIfTI through cmpl.utilities.io.
-  - project_3d_matrix(matrix, value, axis)
-  - extract_extrusion(extrusion_path, seg_path, projection_value=11)
+### 2D GRAPPA
 
-- MRISegmentationTool.py: AutoSegmentation helper around a user-provided PyTorch model.
-  - AutoSegmentation.set_model(model, echos)
-  - AutoSegmentation.load_model_state_dict(model_path)
-  - AutoSegmentation.load_dicom_dir(directory)
-  - AutoSegmentation.auto_segment()
-  - AutoSegmentation.save_nifti(output_file_path)
-
-Example — AutoSegmentation workflow
 ```python
-import torch as pt
-from cmpl.segmentation.MRISegmentationTool import AutoSegmentation
+from cmpl.reconstruction.grappa import grappa_2d_recon
 
-model = ...                # your torch.nn.Module
-my_echos = [0,1,2,3,4,5,6] # indices of echoes the model expects
-seg = AutoSegmentation(device='cuda', verbosity=1)
-seg.set_model(model, my_echos)
-seg.load_model_state_dict('path/to/model_weights.pth')
-seg.load_dicom_dir('path/to/Dicoms')
-seg.auto_segment()
-seg.save_nifti('path/to/output_seg.nii.gz')
+reconstructed_kspace = grappa_2d_recon(
+    calibration_kspace,
+    undersampled_kspace,
+    kernel_size=(3, 3, 3),
+    reduction_factors=(2, 2),
+)
 ```
 
-### 4) I/O and format conversion
-Location: src/cmpl/utilities/io.py
+### Conjugate-gradient SENSE
 
-- nifti_read(path, re_orient=True) -> (nifti, data)
-- load_dicom_scan_from_dir(directory, reshape=True, verbose=False, with_spacing=False)
-  - Returns numpy array with shape [x, y, z] or [x, y, z, echo]; optional (origin, spacing, orientation)
-- update_nifti_data(file_path, new_data, output_path=None)
-- dicom_to_SimpleITK(dicom_directory) -> sitk.Image (3D or 4D when multi-echo)
-- itk_to_nifti(itk_image, nifti_path, verbose=True)
-- itk_mask_correction(img_nifti, mask_nifti, tol=1e-1, return_axis=False)
-
-Example — Load DICOM series and save a NIfTI copy
 ```python
-from cmpl.utilities.io import load_dicom_scan_from_dir, update_nifti_data
-imgs = load_dicom_scan_from_dir('path/to/dicoms', reshape=True)
-# ... process imgs ...
-update_nifti_data('template.nii.gz', imgs, 'processed.nii.gz')
+from cmpl.reconstruction.sense import CG_sense_2D
+
+reconstructed_image = CG_sense_2D(
+    undersampled_image_space,
+    coil_sensitivity,
+)
 ```
 
-### 5) General utilities
-Location: src/cmpl/utilities/utils.py and df_build.py
+Inputs to the current SENSE implementation are PyTorch tensors.
 
-- h5_to_nifti(input_file, output_file)
-- prepare_zipped_dicom(zip_path, extract_path)
-- dicom_to_h5(dicom_directory, h5py_path, contrast='3D_gre_sag', num_contrasts=7, num_slices_per_contrast=120)
-- kspace_to_image_space(kspace, fourier_dims=[0,1,2], coil_column_loc=-1, return_coil_images=False)
-- apply_hamming_filter_4d_numpy(array4d, dim1, dim2)
-- resize_complex_matrix_fft(image, target_shape)
-- zero_pad(tensor_or_array, final_shape)
-- resize_matrix(matrix2d, target_shape=(600,600))
-- df_build.build_medical_data_frame(root_dir) -> pandas.DataFrame built from a specific folder layout (Dicoms, h5_files, Segmentations)
+## I/O
 
-### 6) Visualization
-Location: src/cmpl/visualization/visualization.py
+Install the I/O extra:
 
-- side_by_side_view(*images, color_palette='gray', dpi=100, titles=None)
-- visualize_segmentation_slice(grayscale_image, segmentation_matrix, slice_number, dimension='axial', target_shape=(600,600))
-- plot_3D_mri(mri_image, slice_number=None, direction='sagittal', segmentation=None, alpha=0.5, dpi=150, target_shape=None, m_cmap='gray')
+```bash
+python -m pip install "cmpl[io]"
+```
 
-Example — Overlay segmentation on an MRI slice
+### Read a NIfTI file
+
 ```python
-from cmpl.visualization.visualization import visualize_segmentation_slice
-visualize_segmentation_slice(mri_3d, seg_3d, slice_number=50, dimension='axial', target_shape=(600,600))
+from cmpl.utilities.io import nifti_read
+
+nifti_image, data = nifti_read("image.nii.gz")
 ```
 
-## Data types and conventions
-- Complex arrays are represented as numpy complex64 or torch.complex64 depending on the function.
-- Unless otherwise stated, GRAPPA functions expect arrays ordered as [frequency, phase, slice, coils]. Use numpy.moveaxis to adjust ordering if needed.
-- Quantitative mapping routines currently allocate tensors on CUDA. If you do not have a GPU, consider adapting the code (removing .cuda()) or using a CUDA-enabled environment.
+### Replace NIfTI data while preserving geometry
 
-## Development notes
-- The codebase uses PyTorch, NumPy/SciPy, nibabel, pydicom, and SimpleITK. See pyproject.toml for exact versions.
-- Progress bars are provided via tqdm in some routines.
+```python
+from cmpl.utilities.io import update_nifti_data
 
-## How to cite
-If you use CMPL in a scientific publication, please cite the toolkit and the underlying algorithms (GRAPPA, SENSE, etc.). A formal citation entry will be provided in future releases.
+updated = update_nifti_data(
+    "reference.nii.gz",
+    new_data,
+    output_path="updated.nii.gz",
+)
+```
+
+### Load a DICOM directory
+
+```python
+from cmpl.utilities.io import load_dicom_scan_from_dir
+
+volume = load_dicom_scan_from_dir(
+    "/path/to/dicom_directory",
+    reshape=True,
+)
+```
+
+For multi-echo data, the loader can return data arranged as:
+
+```text
+x, y, z, echo
+```
+
+depending on the acquisition metadata and requested reshaping behavior.
+
+### DICOM to SimpleITK
+
+```python
+from cmpl.utilities.io import dicom_to_SimpleITK
+
+image = dicom_to_SimpleITK("/path/to/dicom_directory")
+```
+
+### Write a SimpleITK image as NIfTI
+
+```python
+from cmpl.utilities.io import itk_to_nifti
+
+output_path = itk_to_nifti(
+    image,
+    "output.nii.gz",
+)
+```
+
+### Enhanced-DICOM helpers
+
+```python
+from cmpl.dicom.enhanced_dicom import (
+    get_slice_thickness,
+    get_spacing_between_slices,
+    voxel_sizes_detailed,
+)
+
+details = voxel_sizes_detailed(dataset)
+```
+
+## Numerical utilities
+
+Lightweight numerical helpers are kept separate from heavier I/O modules so visualization and other numerical workflows do not require unrelated optional dependencies.
+
+```python
+from cmpl.utilities.numerical import resize_matrix
+
+resized = resize_matrix(
+    image,
+    target_shape=(600, 600),
+)
+```
+
+`resize_matrix` accepts NumPy arrays and PyTorch tensors. PyTorch is imported at runtime only when a Torch tensor is actually passed to the function.
+
+For backward compatibility, older imports such as:
+
+```python
+from cmpl.utilities.utils import resize_matrix
+```
+
+continue to work.
+
+## Data indexing
+
+Install the data extra:
+
+```bash
+python -m pip install "cmpl[data]"
+```
+
+CMPL includes a pandas-based utility for indexing a directory tree that follows the CMPL medical-data convention:
+
+```python
+from cmpl.utilities.df_build import build_medical_data_frame
+
+df = build_medical_data_frame("/path/to/root")
+```
+
+The utility is designed around a structure such as:
+
+```text
+root/
+├── Study001/
+│   ├── Dicoms/
+│   │   └── <contrast>/
+│   ├── h5_files/
+│   │   └── <contrast>.h5
+│   └── Segmentations/
+│       └── <contrast>/
+│           └── <group>/
+│               └── <segmentation>.nii.gz
+└── Study002/
+    └── ...
+```
+
+This utility is convention-specific rather than a general filesystem indexer.
+
+## Lazy loading and optional dependencies
+
+CMPL is designed so that unrelated optional packages are not imported simply because the top-level package is imported.
+
+For example:
+
+```python
+import cmpl
+```
+
+does not immediately require PyTorch, Matplotlib, pandas, nibabel, pydicom, SimpleITK, or h5py.
+
+Optional functionality is loaded when its corresponding module or function is accessed. This keeps startup lightweight and allows users to install only the dependencies required for their workflow.
+
+## Development
+
+Clone the project and install it in editable mode with development dependencies:
+
+```bash
+python -m pip install -e ".[dev]"
+```
+
+For development across the currently tested major feature groups:
+
+```bash
+python -m pip install -e ".[dev,io,data,viz,torch]"
+```
+
+Run the test suite:
+
+```bash
+python -m pytest tests/ -v
+```
+
+The test suite includes:
+
+- lazy-import and dependency-boundary tests
+- qMRI numerical tests
+- GRAPPA and SENSE reconstruction tests
+- visualization smoke tests
+- synthetic NIfTI, DICOM, and SimpleITK I/O tests
+- data-indexing tests
+
+### Build the package
+
+```bash
+python -m build
+python -m twine check dist/*
+```
+
+## Package layout
+
+```text
+src/cmpl/
+├── dicom/
+│   └── enhanced_dicom.py
+├── quantitative_MRI/
+│   └── mapping.py
+├── reconstruction/
+│   ├── grappa/
+│   │   ├── grappa_1D.py
+│   │   ├── grappa_2D.py
+│   │   └── utils.py
+│   └── sense/
+│       └── cg.py
+├── utilities/
+│   ├── df_build.py
+│   ├── io.py
+│   ├── numerical.py
+│   └── utils.py
+└── visualization/
+    └── visualization.py
+```
 
 ## License
-See LICENSE in the repository.
+
+See the `LICENSE` file included with the project for licensing terms.
+
+## Author
+
+CMPL is developed by Eisa Hedayati at CMRR.
