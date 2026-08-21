@@ -1,0 +1,1906 @@
+    1  2026-08-20 16:38:41 exit
+    2  2026-08-20 16:38:41 conda 
+    3  2026-08-20 16:38:41 conda env list
+    4  2026-08-20 16:38:41 conda env list
+    5  2026-08-20 16:38:41 conda env list
+    6  2026-08-20 16:38:41 conda env list
+    7  2026-08-20 16:38:41 vim .bashrc
+    8  2026-08-20 16:38:41 cat .bashrc
+    9  2026-08-20 16:38:41 vim .bash_profile 
+   10  2026-08-20 16:38:41 vim .bash_heday 
+   11  2026-08-20 16:38:41 vim .bashrc
+   12  2026-08-20 16:38:41 exit
+   13  2026-08-20 16:38:41 screen -r 
+   14  2026-08-20 16:38:41 pwd
+   15  2026-08-20 16:38:41 lr
+   16  2026-08-20 16:38:41 ls
+   17  2026-08-20 16:38:41 cd miniconda3/
+   18  2026-08-20 16:38:41 ls
+   19  2026-08-20 16:38:41 cd pkgs/
+   20  2026-08-20 16:38:41 ls
+   21  2026-08-20 16:38:41 screen -r
+   22  2026-08-20 16:38:41 rm -rvf z*
+   23  2026-08-20 16:38:41 find . -mindepth 1 -maxdepth 1 -type d   -exec sh -c 'echo "Removing $1"; rm -rf "$1"' _ {} \;
+   24  2026-08-20 16:38:41 screen -r
+   25  2026-08-20 16:38:41 screen
+   26  2026-08-20 16:38:41 screen -r
+   27  2026-08-20 16:38:41 screen
+   28  2026-08-20 16:38:41 mkdir pkgs
+   29  2026-08-20 16:38:41 cd
+   30  2026-08-20 16:38:41 cd miniconda3/
+   31  2026-08-20 16:38:41 mkdir pkgs
+   32  2026-08-20 16:38:41 ls
+   33  2026-08-20 16:38:41 OLD=/home/naxos2-raid26/heday015/miniconda3
+   34  2026-08-20 16:38:41 NEW=/home/naxos3-raid1/heday015/miniconda3
+   35  2026-08-20 16:38:41 cd $NEW
+   36  2026-08-20 16:38:41 ls
+   37  2026-08-20 16:38:41 cd
+   38  2026-08-20 16:38:41 cd $NEW
+   39  2026-08-20 16:38:41 ls
+   40  2026-08-20 16:38:41 hash -r
+   41  2026-08-20 16:38:41 export PATH="$NEW/bin:$PATH"
+   42  2026-08-20 16:38:41 which conda
+   43  2026-08-20 16:38:41 conda --version
+   44  2026-08-20 16:38:41 head -n 1 "$NEW/bin/conda"
+   45  2026-08-20 16:38:41 head -n 1 "$NEW/bin/python"
+   46  2026-08-20 16:38:41 grep -RIl "$OLD" "$NEW/bin" | xargs -r sed -i "s|$OLD|$NEW|g"
+   47  2026-08-20 16:38:41 head -n 1 "$NEW/bin/conda"
+   48  2026-08-20 16:38:41 head -n 1 "$NEW/bin/python"
+   49  2026-08-20 16:38:41 for d in conda-meta etc lib; do   if [ -d "$d" ]; then     echo "Scanning $d ...";     grep -RIl "$OLD" "$d" 2>/dev/null | wc -l;   fi; done
+   50  2026-08-20 16:38:41 for d in conda-meta etc lib; do   if [ -d "$d" ]; then     grep -RIl "$OLD" "$d" 2>/dev/null | xargs -r sed -i "s|$OLD|$NEW|g";   fi; done
+   51  2026-08-20 16:38:41 for d in conda-meta etc lib; do   if [ -d "$d" ]; then     echo "Scanning $d ...";     grep -RIl "$OLD" "$d" 2>/dev/null | wc -l;   fi; done
+   52  2026-08-20 16:38:41 ls -1 "$NEW/envs" 2>/dev/null
+   53  2026-08-20 16:38:41 if [ -d "$NEW/envs" ]; then   grep -RIl "$OLD" "$NEW/envs" 2>/dev/null | wc -l;   grep -RIl "$OLD" "$NEW/envs" 2>/dev/null | xargs -r sed -i "s|$OLD|$NEW|g"; fi
+   54  2026-08-20 16:38:41 # Fix shebangs and wrappers
+   55  2026-08-20 16:38:41 find "$NEW/envs" -type f   \( -path "*/bin/*" -o -path "*/conda-meta/*.json" \)   -print0 2>/dev/null | xargs -0 grep -Il "$OLD" 2>/dev/null | xargs -0 sed -i "s|$OLD|$NEW|g"
+   56  2026-08-20 16:38:41 for e in "$NEW"/envs/*; do   echo "Fixing $(basename "$e")";   grep -RIl "$OLD" "$e/bin" "$e/conda-meta" 2>/dev/null     | xargs -r sed -i "s|$OLD|$NEW|g"; done
+   57  2026-08-20 16:38:41 grep -RIl "$OLD" "$NEW" 2>/dev/null | head
+   58  2026-08-20 16:38:41 grep -n "$OLD" ~/.condarc 2>/dev/null || true
+   59  2026-08-20 16:38:41 OLD=/old/path/miniconda3
+   60  2026-08-20 16:38:41 NEW=/new/path/miniconda3
+   61  2026-08-20 16:38:41 # Fix base scripts + metadata + activation bits (targeted and fast)
+   62  2026-08-20 16:38:41 sed -i "s|$OLD|$NEW|g"   "$NEW"/bin/*   "$NEW"/conda-meta/*.json   "$NEW"/etc/profile.d/*   2>/dev/null
+   63  2026-08-20 16:38:41 hash -r
+   64  2026-08-20 16:38:41 export PATH="$NEW/bin:$PATH"
+   65  2026-08-20 16:38:41 which conda
+   66  2026-08-20 16:38:41 conda info | sed -n '1,80p'
+   67  2026-08-20 16:38:41 python -c "import sys; print(sys.executable); print(sys.prefix)"
+   68  2026-08-20 16:38:41 conda run -n base python -c "import sys; print(sys.executable); print(sys.prefix)"
+   69  2026-08-20 16:38:41 conda run -n autoSeg python -c "import sys; print(sys.executable); print(sys.prefix)"
+   70  2026-08-20 16:38:41 grep -RIl "$OLD" "$NEW/bin" "$NEW/conda-meta" "$NEW/etc" "$NEW/envs" 2>/dev/null | head -n 20
+   71  2026-08-20 16:38:41 l pkgs/
+   72  2026-08-20 16:38:41 ll
+   73  2026-08-20 16:38:41 chgrp msk pkgs/
+   74  2026-08-20 16:38:41 chgrp -R msk pkgs/
+   75  2026-08-20 16:38:41 history | grep chmod
+   76  2026-08-20 16:38:41 cdmod
+   77  2026-08-20 16:38:41 chmod
+   78  2026-08-20 16:38:41 ll
+   79  2026-08-20 16:38:41 test -w "$NEW/pkgs" && echo "pkgs is writable" || echo "pkgs is NOT writable"
+   80  2026-08-20 16:38:41 test -w
+   81  2026-08-20 16:38:41 test -w "$NEW/ssl" && echo "pkgs is writable" || echo "pkgs is NOT writable"
+   82  2026-08-20 16:38:41 cd 
+   83  2026-08-20 16:38:41 test -w "$NEW/ssl" && echo "pkgs is writable" || echo "pkgs is NOT writable"
+   84  2026-08-20 16:38:41 ll
+   85  2026-08-20 16:38:41 ll | grep miniconda3/
+   86  2026-08-20 16:38:41 conda info
+   87  2026-08-20 16:38:41 conda clean -a -y
+   88  2026-08-20 16:38:41 conda activate autoSeg
+   89  2026-08-20 16:38:41 ls
+   90  2026-08-20 16:38:41 cd EllermannLab
+   91  2026-08-20 16:38:41 cd scripts/
+   92  2026-08-20 16:38:41 cd T2star/
+   93  2026-08-20 16:38:41 ll
+   94  2026-08-20 16:38:41 cp config.csv config_e.csv
+   95  2026-08-20 16:38:41 vim config_e.csv 
+   96  2026-08-20 16:38:41 cp Vibe_2.nii.gz Vibe_2_e.nii.gz
+   97  2026-08-20 16:38:41 python T2star_calc.py Vibe_2_e.nii.gz config_e.csv 
+   98  2026-08-20 16:38:41 ls
+   99  2026-08-20 16:38:41 ll
+  100  2026-08-20 16:38:41 rm -rf Vibe_2_e*
+  101  2026-08-20 16:38:41 rm -rf config_e.csv 
+  102  2026-08-20 16:38:41 cd
+  103  2026-08-20 16:38:41 cd EllermannLab/dataset/TCO/
+  104  2026-08-20 16:38:41 cd Patients_Baseline/
+  105  2026-08-20 16:38:41 cd TCO-024-ST001-20230407/Segmentations/MR-SE016-3D_GRE_T2__Sag/Automated/
+  106  2026-08-20 16:38:41 l Meniscus/
+  107  2026-08-20 16:38:41 cd Meniscus/
+  108  2026-08-20 16:38:41 cd ../../../TCO-025
+  109  2026-08-20 16:38:41 cd
+  110  2026-08-20 16:38:41 ll
+  111  2026-08-20 16:38:41 touch Eis
+  112  2026-08-20 16:38:41 ll | grep Eis
+  113  2026-08-20 16:38:41 ll
+  114  2026-08-20 16:38:41 cd EllermannLab
+  115  2026-08-20 16:38:41 cd 
+  116  2026-08-20 16:38:41 ssh naxos3
+  117  2026-08-20 16:38:41 ssh naxos3
+  118  2026-08-20 16:38:41 ssh-copy-id naxos3
+  119  2026-08-20 16:38:41 ssh naxos3
+  120  2026-08-20 16:38:41 ls
+  121  2026-08-20 16:38:41 cat .ssh/authorized_keys 
+  122  2026-08-20 16:38:41 pwd
+  123  2026-08-20 16:38:41 pwd
+  124  2026-08-20 16:38:41 ssh naxos3
+  125  2026-08-20 16:38:41 pwd
+  126  2026-08-20 16:38:41 pwd
+  127  2026-08-20 16:38:41 ssh naxos3
+  128  2026-08-20 16:38:41 ll
+  129  2026-08-20 16:38:41 pwd
+  130  2026-08-20 16:38:41 pwd
+  131  2026-08-20 16:38:41 screen -r 
+  132  2026-08-20 16:38:41 screen
+  133  2026-08-20 16:38:41 exit
+  134  2026-01-15 11:48:28 test
+  135  2026-01-15 11:48:32 history 
+  136  2026-01-15 11:48:34 exit
+  137  2026-01-15 11:48:38 test
+  138  2026-01-15 11:48:41 history 
+  139  2026-01-15 11:48:49 cat .bashrc
+  140  2026-01-15 11:48:53 cat .bash_profile 
+  141  2026-01-15 11:48:55 history 
+  142  2026-01-15 11:49:01 exit
+  143  2026-01-15 11:49:05 history 
+  144  2026-01-15 11:49:18 cat .bashrc
+  145  2026-01-15 11:50:20 echa "$0"
+  146  2026-01-15 11:50:24 echo "$0"
+  147  2026-01-15 11:50:30 echo "$-"
+  148  2026-01-15 11:51:44 declare -p PROMPT_COMMAND
+  149  2026-01-15 11:52:07 vim .bashrc
+  150  2026-01-15 11:52:28 exit
+  151  2026-01-15 11:52:32 history 
+  152  2026-01-15 11:52:35 test
+  153  2026-01-15 11:52:38 history 
+  154  2026-01-15 11:52:47 cat 'exi'
+  155  2026-01-15 11:52:53 echo 'exi'
+  156  2026-01-15 11:52:55 history 
+  157  2026-01-15 11:53:17 cd '~'
+  158  2026-01-15 11:53:22 l Jutta/
+  159  2026-01-15 11:53:31 l ../Jutta/Sodium/
+  160  2026-01-15 11:54:36 cd
+  161  2026-01-15 11:54:39 cd Jutta/
+  162  2026-01-15 11:54:42 cd Sodium/
+  163  2026-01-15 11:55:18 cd 
+  164  2026-01-15 11:55:25 rm -rf '~'
+  165  2026-01-15 11:55:34 cd EllermannLab
+  166  2026-01-15 11:55:35 cd .
+  167  2026-01-15 11:56:07 rm EllermannLab
+  168  2026-01-15 11:56:13 ln
+  169  2026-01-15 11:56:58 ln -s /home/naxos2-raid37/EllermannLab/ EllermannLab
+  170  2026-01-15 11:57:21 rm -rf Eis 
+  171  2026-01-15 12:01:34 l containers/
+  172  2026-01-15 12:01:56 l datasets/
+  173  2026-01-15 12:02:07 rm -rf datasets/TCO/
+  174  2026-01-15 12:05:13 screen -r
+  175  2026-01-15 12:05:23 conda env list
+  176  2026-01-15 12:05:30 conda activate autoSeg
+  177  2026-01-15 12:05:35 history | grep jupyter
+  178  2026-08-20 16:38:41 pwd
+  179  2026-08-20 16:38:41 cd /home/naxos2-raid26/heday015/
+  180  2026-08-20 16:38:41 cd datasets/
+  181  2026-08-20 16:38:41 l 7T_raw/
+  182  2026-08-20 16:38:41 l TCO/
+  183  2026-08-20 16:38:41 l TCO/Volutnteers/
+  184  2026-08-20 16:38:41 l 7T_raw/In_OutPhase/
+  185  2026-08-20 16:38:41 cd 7T_raw/
+  186  2026-08-20 16:38:41 du -h .*
+  187  2026-08-20 16:38:41 du -h 
+  188  2026-08-20 16:38:41 du -h
+  189  2026-08-20 16:38:41 cd 7T_raw/
+  190  2026-08-20 16:38:41 du -h 
+  191  2026-08-20 16:38:41 du -h .
+  192  2026-08-20 16:38:41 rm -rf 7T_raw/
+  193  2026-08-20 16:38:41 cd
+  194  2026-08-20 16:38:41 cd -
+  195  2026-08-20 16:38:41 cd cmpl/quantitative_MRI/
+  196  2026-08-20 16:38:41 vim mapping.py 
+  197  2026-08-20 16:38:41 cd .
+  198  2026-08-20 16:38:41 ls
+  199  2026-08-20 16:38:41 ls
+  200  2026-08-20 16:38:41 cd cmpl_publish/
+  201  2026-08-20 16:38:41 ls
+  202  2026-08-20 16:38:41 pwd
+  203  2026-08-20 16:38:41 exit
+  204  2026-01-15 12:06:06 jupyter lab --no-browser --ip=127.0.0.1 --port=9020 --notebook-dir=Jutta/
+  205  2026-01-15 12:07:41 conda env -list
+  206  2026-01-15 12:07:46 conda env list
+  207  2026-01-15 12:07:57 which jupyter
+  208  2026-01-15 12:10:02 cd miniconda3/envs/autoSeg/
+  209  2026-01-15 12:10:32 grep -R 'autoSeg/' $CONDA_PREFIX -n | head
+  210  2026-01-15 12:13:50 export OLD="/home/naxos2-raid26/heday015/miniconda3"
+  211  2026-01-15 12:13:50 export NEW="/home/naxos3-raid1/heday015/miniconda3"
+  212  2026-01-15 12:14:11 conda activate autoSeg/
+  213  2026-01-15 12:14:17 python -c "import sys; print(sys.executable); print(sys.prefix)"
+  214  2026-01-15 12:14:17 # both should be under /home/naxos3-raid1/heday015/miniconda3
+  215  2026-01-15 12:14:31 conda install --force-reinstall --all
+  216  2026-01-15 12:15:56 cd
+  217  2026-01-15 12:16:01 mkdir condaFix
+  218  2026-01-15 12:16:04 cd condaFix/
+  219  2026-01-15 12:16:06 conda list --explicit > /tmp/explicit.txt
+  220  2026-01-15 12:16:27 conda list --explicit > explicit.txt
+  221  2026-01-15 12:16:30 cat explicit.txt 
+  222  2026-01-15 12:16:39 conda install --force-reinstall --file explicit.txt
+  223  2026-01-15 12:05:15 screen
+  224  2026-01-15 12:33:59 cd condaFix/
+  225  2026-01-15 12:34:05 history 
+  226  2026-01-15 12:34:13 conda install --force-reinstall --file explicit.txt
+  227  2026-01-15 12:35:57 conda activate autoSeg
+  228  2026-01-15 12:35:59 conda install --force-reinstall --file explicit.txt
+  229  2026-01-15 12:44:51 conda deactivate
+  230  2026-01-15 12:45:11 conda create -n autoseg --file explicit.txt 
+  231  2026-01-15 12:54:53 cd condaFix/
+  232  2026-01-15 12:54:58 conda env list
+  233  2026-01-15 12:55:46 conda create -n autoseg --file explicit.txt 
+  234  2026-01-15 12:57:49 conda create -n autoseg --file explicit.txt -vv
+  235  2026-01-15 12:58:59 ls -lh explicit.txt
+  236  2026-01-15 12:59:16 ps fax
+  237  2026-01-15 12:59:20 ps fax | grep conda
+  238  2026-01-15 13:00:26 conda create -n autoseg python
+  239  2026-01-15 13:05:03 conda create -n autoseg --file explicit.txt -vv
+  240  2026-01-15 13:13:35 cd
+  241  2026-01-15 13:13:37 cd miniconda3/
+  242  2026-01-15 13:13:39 cd pkgs/
+  243  2026-01-15 13:13:46 rm -rf ./*
+  244  2026-01-15 13:15:25 module
+  245  2026-01-15 13:13:49 rm -rvf ./*
+  246  2026-01-15 13:24:12 mv pkgs/ pkgs_old
+  247  2026-01-15 13:24:19 mkdir pkgs
+  248  2026-01-15 13:24:20 cd
+  249  2026-01-15 13:24:23 cd condaFix/
+  250  2026-01-15 13:24:28 conda create -n autoseg --file explicit.txt -vv
+  251  2026-01-15 13:24:54 rm -rf ../miniconda3/envs/autoseg/
+  252  2026-01-15 13:28:25 cd miniconda3/
+  253  2026-01-15 13:28:28 l pkgs
+  254  2026-01-15 13:28:44 rf -rvf pkgs_old/
+  255  2026-01-15 13:35:43 cd miniconda3/
+  256  2026-01-15 13:35:47 l pkgs/
+  257  2026-01-15 13:38:17 cd watch 'du -h --max-depth=1 miniconda3/pkgs'
+  258  2026-01-15 13:38:21 watch 'du -h --max-depth=1 miniconda3/pkgs'
+  259  2026-01-15 13:38:36 watch 'du -h --max-depth=1 miniconda3'
+  260  2026-01-15 13:28:49 rm -rvf pkgs_old/
+  261  2026-01-15 13:24:55 conda create -n autoseg --file explicit.txt -vv
+  262  2026-01-15 15:18:03 cd
+  263  2026-01-15 15:18:20 history | grep jupyter
+  264  2026-01-15 13:38:55 watch 'du -h --max-depth=0 miniconda3/pkgs'
+  265  2026-01-15 16:42:08 pip install cmpl
+  266  2026-01-15 17:01:32 python - << 'EOF'
+  267  2026-08-20 16:38:41 import sys, IPython, matplotlib_inline
+  268  2026-08-20 16:38:41 print("python:", sys.executable)
+  269  2026-08-20 16:38:41 print("ipython:", IPython.__file__)
+  270  2026-08-20 16:38:41 print("matplotlib_inline:", matplotlib_inline.__file__)
+  271  2026-08-20 16:38:41 print("user site:", sys.path[-1])
+  272  2026-08-20 16:38:41 EOF
+  273  2026-01-15 17:03:03 mv ~/.local/lib/python3.12 ~/.local/lib/python3.12.BAK
+  274  2026-01-15 17:03:48 conda install ipython matplotlib matplotlib-inlinejupyter_client jupyter_core
+  275  2026-01-15 17:03:54 conda install ipython matplotlib matplotlib-inline jupyter_client jupyter_core
+  276  2026-01-15 15:18:29 jupyter lab --no-browser --ip=127.0.0.1 --port=9020 --notebook-dir=~/Jutta/
+  277  2026-01-16 09:02:39 pip instal --upgrade cmpl
+  278  2026-01-16 09:02:43 pip install --upgrade cmpl
+  279  2026-01-16 09:47:27 pip install ipympl
+  280  2026-01-16 11:18:41 git status
+  281  2026-01-16 13:54:47 git pull
+  282  2026-01-16 13:56:18 pip install -e .
+  283  2026-01-16 14:02:43 git status
+  284  2026-01-16 14:03:10 rm -rf cmpl
+  285  2026-01-16 14:03:23 mv cmpl.egg-info/ ..
+  286  2026-01-16 14:03:27 git status
+  287  2026-01-16 14:03:35 rm -rf ../cmpl.egg-info/
+  288  2026-01-16 14:03:42 pip install -e .
+  289  2026-01-16 16:58:52 git status 
+  290  2026-01-16 16:58:57 git add src
+  291  2026-01-16 16:58:59 git status 
+  292  2026-01-16 17:01:14 git commit -m 'Visualization: 1. plot_3D_mri is updated to use matplotlib widget correctly. 2. Minor bug fixes.  QMRI: t2_star_two_parametric_3D function is now more robust and has the option of returning S0 normalized times 100 RMSE'
+  293  2026-01-16 17:01:18 git push
+  294  2026-01-20 11:00:34 conda env list
+  295  2026-01-20 11:17:42 conda cativate cmpl
+  296  2026-01-20 11:17:48 conda activate cmpl
+  297  2026-01-20 11:28:29 python -c "import cmpl; print(getattr(cmpl, '__version__', 'no __version__ attr'))"
+  298  2026-01-20 11:29:11 pip install --upgrade cmpl
+  299  2026-01-20 11:29:19 python -c "import cmpl; print(getattr(cmpl, '__version__', 'no __version__ attr'))"
+  300  2026-01-20 11:33:33 pip install --upgrade cmpl
+  301  2026-01-20 11:33:45 which python
+  302  2026-01-20 11:34:49 pip intall cmpl
+  303  2026-01-20 11:34:54 pip install cmpl
+  304  2026-01-20 11:49:29 python -c "import cmpl; print(getattr(cmpl, '__version__', 'no __version__ attr'))"
+  305  2026-01-20 12:19:56 pip install twine
+  306  2026-01-20 12:22:10 vim LICENSE 
+  307  2026-01-20 12:23:23 rm -rf dist/ src/cmpl.egg-info/
+  308  2026-01-20 12:25:12 cat pyproject.toml 
+  309  2026-01-20 12:25:23 cat LICENSE 
+  310  2026-01-20 12:25:28 cd src/
+  311  2026-01-20 12:25:31 cd cmpl
+  312  2026-01-20 12:25:37 l _version.py 
+  313  2026-01-20 12:25:42 cat _version.py 
+  314  2026-01-20 12:26:39 cd../..
+  315  2026-01-20 12:27:34 rm -rf dist/ src/cmpl.egg-info/
+  316  2026-01-20 12:28:17 python -m pip install --upgrade pip setuptools wheel build twine
+  317  2026-01-20 12:34:11 ls -la
+  318  2026-01-20 12:34:11 grep -RIn --exclude-dir=.git -E "license[_-]file|setup\.cfg|setup\.py" .
+  319  2026-01-20 12:34:24 ls -la | grep -RIn --exclude-dir=.git -E "license[_-]file|setup\.cfg|setup\.py" .
+  320  2026-01-20 12:34:56 rm -rf .ipynb_checkpoints/
+  321  2026-01-20 12:35:06 ls -la | grep -RIn --exclude-dir=.git -E "license[_-]file|setup\.cfg|setup\.py" .
+  322  2026-01-20 12:35:08 grep -RIn --exclude-dir=.git -E "license[_-]file|setup\.cfg|setup\.py" .
+  323  2026-01-20 12:35:10 ls -la | grep -RIn --exclude-dir=.git -E "license[_-]file|setup\.cfg|setup\.py" .
+  324  2026-01-20 12:36:06 python -m pip show setuptools build twine | egrep 'Name|Version'
+  325  2026-01-20 12:37:14 ls -la | grep -RIn --exclude-dir=.git -E "license[_-]file|setup\.cfg|setup\.py" .
+  326  2026-08-20 16:38:41 import glob, zipfile
+  327  2026-08-20 16:38:41 whl = glob.glob("dist/*.whl")[0]
+  328  2026-08-20 16:38:41 with zipfile.ZipFile(whl) as z:
+  329  2026-08-20 16:38:41     meta_path = [p for p in z.namelist() if p.endswith(".dist-info/METADATA")][0]
+  330  2026-08-20 16:38:41     meta = z.read(meta_path).decode("utf-8", "replace")
+  331  2026-08-20 16:38:41 print("WHEEL:", whl)
+  332  2026-08-20 16:38:41 for line in meta.splitlines():
+  333  2026-08-20 16:38:41     if line.startswith("Metadata-Version:") or line.lower().startswith("license"):
+  334  2026-08-20 16:38:41         print(line)
+  335  2026-08-20 16:38:41 PY
+  336  2026-01-20 12:44:56 pip install build
+  337  2026-01-20 12:45:09 pip uninstall build
+  338  2026-01-20 12:45:28 pip uninstall twine
+  339  2026-01-20 12:45:40 pip install build twine
+  340  2026-01-20 12:46:02 pip uninstall packaging
+  341  2026-01-20 12:46:17 pip install packaging
+  342  2026-01-20 12:46:27 rm -rf dist/
+  343  2026-01-20 12:46:35 rm -rf src/cmpl.egg-info/
+  344  2026-01-20 12:49:11 pip install --upgrade .
+  345  2026-01-20 12:49:17 pip install -e --upgrade .
+  346  2026-01-20 12:49:31 pip install -e .
+  347  2026-01-15 15:18:11 screen
+  348  2026-01-21 15:25:26 nvidia-smi
+  349  2026-01-21 15:29:45 pip install scikit-learn
+  350  2026-01-21 15:33:01 pip install GPUtil
+  351  2026-01-23 15:40:14 cd Jutta/Segmentation/auto_seg_paper/script/
+  352  2026-01-23 15:40:18 python create_seg_mask.py
+  353  2026-01-23 15:46:36 python create_seg_mask.py --input MR-SE014-3D_GRE_T2__Sag.nii.gz --config auto_seg_config.yaml 
+  354  2026-01-23 15:47:13 python create_seg_mask.py --input script/MR-SE014-3D_GRE_T2__Sag.nii.gz --config script/auto_seg_config.yaml 
+  355  2026-01-23 15:50:36 python create_seg_mask.py   --input ../MR-SE014-3D_GRE_T2__Sag.nii.gz   --config auto_seg_config.yaml
+  356  2026-01-23 15:51:03 python create_seg_mask.py   --input script/MR-SE014-3D_GRE_T2__Sag.nii.gz   --config auto_seg_config.yaml
+  357  2026-01-26 16:05:05 nvidia-smi 
+  358  2026-01-26 16:05:19 watch -n 0.5 nvidia-smi 
+  359  2026-08-20 16:38:41 cd /home/naxos2-raid26/
+  360  2026-08-20 16:38:41 cd heday015/
+  361  2026-08-20 16:38:41 cd miniconda3/
+  362  2026-08-20 16:38:41 cd envs/
+  363  2026-08-20 16:38:41 ll
+  364  2026-08-20 16:38:41 rm -rf test/
+  365  2026-08-20 16:38:41 rm -rvf test/
+  366  2026-08-20 16:38:41 rm -rf ./*
+  367  2026-08-20 16:38:41 rm -rvf ./*
+  368  2026-08-20 16:38:41 rm -rvp pkgs/
+  369  2026-08-20 16:38:41 rm -rvf pkgs/
+  370  2026-08-20 16:38:41 rm -rvf miniconda3/
+  371  2026-08-20 16:38:41 l ~
+  372  2026-08-20 16:38:41 l '~'
+  373  2026-08-20 16:38:41 cd '~'
+  374  2026-08-20 16:38:41 l Jutta/
+  375  2026-08-20 16:38:41 l Jutta/Sodium/
+  376  2026-08-20 16:38:41 ll
+  377  2026-08-20 16:38:41 ll Jutta/
+  378  2026-08-20 16:38:41 ll Jutta/Sodium/
+  379  2026-08-20 16:38:41 cd 
+  380  2026-08-20 16:38:41 rm -rf '~'
+  381  2026-08-20 16:38:41 ll
+  382  2026-08-20 16:38:41 ll | grep Eller
+  383  2026-08-20 16:38:41 pwd
+  384  2026-08-20 16:38:41 cd /home/naxos2-raid26/heday015/
+  385  2026-08-20 16:38:41 rm -rf jupyter-lab_*
+  386  2026-08-20 16:38:41 rm -rfv conda_pack/
+  387  2026-08-20 16:38:41 rm -rvf conda_pack/
+  388  2026-08-20 16:38:41 rm -rvf containers/
+  389  2026-08-20 16:38:41 rm -rvf datasets/
+  390  2026-08-20 16:38:41 l ~
+  391  2026-08-20 16:38:41 cd
+  392  2026-01-28 15:17:44 rn
+  393  2026-01-28 15:18:21 cd Jutta/Segmentation/auto_seg_paper/script
+  394  2026-01-28 15:19:51 python script/create_seg_mask.py --input script/MR-SE014-3D_GRE_T2__Sag.nii.gz --config script/auto_seg_config.yaml 
+  395  2026-01-29 12:31:58 nvidia-smi
+  396  2026-02-02 14:02:32 htop
+  397  2026-02-03 10:28:31 cd /home/
+  398  2026-02-03 10:28:38 l bakken-raid8/
+  399  2026-02-03 10:28:46 l naxos2-raid1
+  400  2026-02-03 10:29:04 l naxos2-raid2
+  401  2026-02-03 10:29:22 l naxos2-raid26
+  402  2026-02-03 10:29:30 l naxos2-raid27
+  403  2026-02-03 10:29:42 l naxos2-raid18
+  404  2026-02-03 10:29:52 l naxos2-raid1
+  405  2026-02-03 10:30:00 l naxos2-raid1/dicom-extra/
+  406  2026-02-03 10:41:28 cd /home
+  407  2026-02-03 10:41:33 l bakken-raid8/
+  408  2026-02-03 10:41:49 l naxos2-raid2 | grep dicom
+  409  2026-02-03 10:41:58 l naxos2-raid26 | grep dicom
+  410  2026-02-03 10:42:01 l naxos2-raid1 | grep dicom
+  411  2026-02-03 10:42:19 l naxos3-raid1 | grep dicom
+  412  2026-02-03 10:42:26 l range6-raid1 | grep dicom
+  413  2026-02-03 10:42:30 l range4-raid1 | grep dicom
+  414  2026-02-03 10:42:57 l home
+  415  2026-02-03 10:43:12 l home0/
+  416  2026-02-03 10:43:31 cd home
+  417  2026-02-03 10:45:53 cd 
+  418  2026-02-03 10:46:17 l shim105t-raid1/
+  419  2026-02-03 10:46:23 cd dicom
+  420  2026-02-03 10:46:27 l dicom
+  421  2026-02-03 10:46:35 l tmp/
+  422  2026-02-03 10:47:19 l media/
+  423  2026-02-03 10:47:22 l ansi/
+  424  2026-02-03 10:47:28 l usr/
+  425  2026-02-03 10:47:36 l home/
+  426  2026-02-03 10:47:40 l export/
+  427  2026-02-03 10:51:45 cd /home/shim7tas2-raid1
+  428  2026-02-03 10:51:58 cd dicom.shim7tas2/
+  429  2026-02-03 10:52:08 cd
+  430  2026-02-03 10:52:27 history | grep ln
+  431  2026-02-03 10:52:37 ln -s /home/shim7tas2-raid1/dicom.shim7tas2 shim7Tas
+  432  2026-02-04 10:36:02 cd EllermannLab
+  433  2026-02-04 10:36:17 cd
+  434  2026-02-04 10:36:22 cd DICOMS
+  435  2026-02-04 11:07:28 touch linkto7T
+  436  2026-02-04 11:07:34 echo '/home/shim7tas2-raid1/dicom.shim7tas2' >> linkto7T 
+  437  2026-02-04 11:07:36 cat linkto7T 
+  438  2026-02-04 11:08:18 m -rf shim7Tas
+  439  2026-02-04 11:08:23 rm -rf shim7Tas
+  440  2026-02-05 11:53:08 ping shim7tas
+  441  2026-02-05 11:53:16 ping shim7tas2
+  442  2026-02-05 14:37:23 pip install --upgrade pydicome
+  443  2026-02-05 14:37:27 pip install --upgrade pydicom
+  444  2026-02-06 15:10:52 cd EllermannLab
+  445  2026-02-06 15:10:55 cd scripts/
+  446  2026-02-06 15:11:02 mv ../../Viewer.zip .
+  447  2026-02-06 15:12:19 mv ~/Viewer.zip .
+  448  2026-02-06 15:12:33 rm -rf NiftiViewer.zip 
+  449  2026-02-06 15:12:44 rm -rf NiftiViewer/
+  450  2026-02-06 15:12:50 unzip Viewer.zip 
+  451  2026-02-10 10:52:05 pip install ipympl
+  452  2026-02-10 11:05:51 cd
+  453  2026-02-10 11:05:57 cd Jutta/T2_star/flattening/
+  454  2026-02-12 15:16:43 cd DICOMS
+  455  2026-02-12 15:17:00 l | grep HIP
+  456  2026-02-12 15:17:02 l | grep hip
+  457  2026-02-12 15:17:04 l | grep Hip
+  458  2026-02-12 15:17:29 history | grep rsync
+  459  2026-02-12 15:21:31 rsync  -avz --info=progress2 --stats 20260121-ST9755-Hip_volunteer_9 /home/naxos3-raid1/heday015/EllermannLab/dataset/Hip/7T/DICOM/
+  460  2026-02-12 15:22:31 cd
+  461  2026-02-12 15:22:39 cd EllermannLab/dataset/Hip/7T/DICOM/
+  462  2026-02-12 15:22:56 history | grep chgrp
+  463  2026-02-12 15:23:12 chgrp -R msk 20260121-ST9755-Hip_volunteer_9/
+  464  2026-02-12 15:23:42 history | grep chmod
+  465  2026-02-12 15:24:42 chmod -R g+w 20260121-ST9755-Hip_volunteer_9/
+  466  2026-02-12 15:28:49 chmod g+s .
+  467  2026-02-12 15:29:02 chmod g+s ./*
+  468  2026-02-12 15:29:42 umask 0002
+  469  2026-02-12 15:29:48 mkdir test
+  470  2026-02-12 15:29:56 rm -rf msk
+  471  2026-02-12 15:30:04 rm -rf test
+  472  2026-02-12 15:30:12 rm -rf Viewer.zip 
+  473  2026-02-12 15:30:19 cat .DS_Store 
+  474  2026-02-12 15:31:17 cd
+  475  2026-02-12 15:31:20 cd DICOMS
+  476  2026-02-12 15:31:26 l | grep Hip
+  477  2026-02-12 15:31:31 cd 20260121-ST9755-Hip_volunteer_9/
+  478  2026-02-12 15:32:33 cd EllermannLab
+  479  2026-02-12 15:32:37 mkdir test
+  480  2026-02-12 15:32:45 rm -rf test/
+  481  2026-02-12 15:32:57 cd 
+  482  2026-02-12 15:33:03 mkdir testtttt
+  483  2026-02-12 15:33:12 rm -rf testtttt/
+  484  2026-02-12 15:33:26 cd DICOMS
+  485  2026-02-12 15:33:35 cd 20260121-ST9755-Hip_volunteer_9/
+  486  2026-02-12 15:34:15 ll | grep Hip
+  487  2026-02-12 15:34:46 rsync  -avz --info=progress2 --stats 20260212-ST000-Hip_volunteer9/ /home/naxos3-raid1/heday015/EllermannLab/dataset/Hip/7T/DICOM/
+  488  2026-02-12 15:34:59 rsync  -avz --info=progress2 --stats 20260212-ST000-Hip_volunteer9 /home/naxos3-raid1/heday015/EllermannLab/dataset/Hip/7T/DICOM/
+  489  2026-02-12 15:55:34 cd EllermannLab/dataset/Hip/7T/DICOM/
+  490  2026-02-12 15:56:02 chgrp -R msk 20260212-ST000-Hip_volunteer9/
+  491  2026-02-12 15:56:16 chmod -R g+w 20260212-ST000-Hip_volunteer9/
+  492  2026-02-12 15:56:30 cd
+  493  2026-02-12 15:56:46 cp ~/.viminfo .
+  494  2026-02-12 15:56:51 rm -rf .viminfo 
+  495  2026-02-12 15:56:58 unset 0002
+  496  2026-02-12 15:57:01 cp ~/.viminfo .
+  497  2026-02-12 15:57:15 rm -rf .viminfo 
+  498  2026-02-12 15:57:19 unmask 0002
+  499  2026-02-12 15:57:25 umask
+  500  2026-02-12 15:57:29 unmask 0002
+  501  2026-02-12 15:57:32 umask 0002
+  502  2026-02-12 15:57:35 umask
+  503  2026-02-12 15:57:41 cp ~/.viminfo .
+  504  2026-02-12 15:57:49 rm -rf .viminfo 
+  505  2026-02-12 15:57:50 umask
+  506  2026-02-12 16:00:17 cd
+  507  2026-02-12 16:00:54 mkdir todayTest
+  508  2026-02-12 16:01:01 cd -
+  509  2026-02-12 16:01:11 cp ~/todayTest/ .
+  510  2026-02-12 16:01:15 cp -r ~/todayTest/ .
+  511  2026-02-12 16:03:49 getfacl 
+  512  2026-02-12 16:42:11 cd
+  513  2026-02-12 16:50:58 htop
+  514  2026-02-12 16:51:10 nvidia-smi
+  515  2026-02-12 16:42:26 conda create -n itksnap-dls python=3.12
+  516  2026-02-12 16:55:28 conda activate itksnap-dls
+  517  2026-02-12 16:55:35 pip install itksnap-dls
+  518  2026-02-16 14:26:36 conda activate cmpl
+  519  2026-02-16 14:26:53 git status
+  520  2026-02-16 14:26:59 git add pyproject.toml src/*
+  521  2026-02-16 14:27:10 git status
+  522  2026-02-16 14:27:43 git commit -m 'Upgraded side_by_side_view, T2star map calculation and nifti loading'
+  523  2026-02-16 14:38:13 history | grep build
+  524  2026-02-16 14:38:35 rm -rf dist/
+  525  2026-02-16 14:39:10 history | grep build
+  526  2026-02-16 14:39:21 history | grep 56
+  527  2026-02-16 14:39:28 history | grep build
+  528  2026-02-16 14:39:56 history | grep 35
+  529  2026-02-16 14:40:22 history | grep 36
+  530  2026-02-16 14:40:58 rm -rf dist/
+  531  2026-02-16 14:41:22 history | grep 36
+  532  2026-02-16 15:31:32 git status
+  533  2026-02-16 15:31:35 git add pyproject.toml 
+  534  2026-02-16 15:31:46 git commit -m 'version correction'
+  535  2026-02-16 15:31:50 git head
+  536  2026-02-16 15:39:51 git remote -v
+  537  2026-02-16 15:40:08 git remote add origin git@github.com:ehedayati/cmpl.git
+  538  2026-02-16 15:40:25 git remote add github git@github.com:ehedayati/cmpl.git
+  539  2026-02-16 15:40:29 git remote -v
+  540  2026-02-16 15:40:51 git push github --all
+  541  2026-02-16 15:41:41 cat ~/.ssh/id_rsa.pub 
+  542  2026-02-16 15:42:00 git push github --all
+  543  2026-02-17 15:56:17 cd 
+  544  2026-02-17 15:56:48 cd EllermannLab/dataset/Hip/7T/DICOM/
+  545  2026-02-17 15:57:00 cd 20260212-ST000-Hip_volunteer9/
+  546  2026-02-17 15:57:22 chgrp
+  547  2026-02-17 15:57:29 chgrp msk plots
+  548  2026-02-17 15:57:45 chmod 750 plots
+  549  2026-02-17 15:57:47 chgrp msk plots
+  550  2026-02-17 15:58:06 chmod -R 755 plots
+  551  2026-02-17 15:58:12 chgrp -R msk plots
+  552  2026-02-17 15:58:24 chmod -R 775 plots
+  553  2026-02-17 15:58:41 chmod -R 775 Nifti
+  554  2026-02-17 16:06:34 cd plots/
+  555  2026-02-17 16:06:57 cp ~/Jutta/T2_star/plots/intensity_profile_* .
+  556  2026-02-17 16:07:10 chgrp msk *
+  557  2026-02-17 16:07:26 chmod 775 *
+  558  2026-02-13 09:16:47 watch -n 0.5 nvidia-smi
+  559  2026-02-18 13:02:25 cd /home/naxos2-raid26
+  560  2026-02-18 13:02:31 cd heday015/
+  561  2026-02-18 13:02:44 rm scratch gpu4dl1 
+  562  2026-02-18 13:03:24 cd ~
+  563  2026-02-18 13:03:40 cd -
+  564  2026-02-18 13:03:46 cd '~'
+  565  2026-02-18 13:03:49 l Jutta/
+  566  2026-02-18 13:04:02 l Jutta/Sodium/
+  567  2026-02-18 13:04:07 cd Jutta/Sodium/
+  568  2026-02-18 13:04:18 l Jutta/Sodium/
+  569  2026-02-18 13:04:33 cd Jutta/Sodium/
+  570  2026-02-18 13:05:01 cd .. 
+  571  2026-02-18 13:05:09 rm -rf '~'
+  572  2026-02-18 13:05:14 cd
+  573  2026-02-13 08:49:56 python -m itksnap_dls
+  574  2026-02-24 09:58:15 conda activate itksnap-dls
+  575  2026-02-24 09:58:22 python -m itksnap-dls
+  576  2026-02-24 09:58:08 screen 
+  577  2026-02-24 09:58:41 python -m itksnap-dls
+  578  2026-02-24 09:58:57 creen -r
+  579  2026-02-24 09:59:03 screen -r
+  580  2026-02-24 09:59:17 screen -r 3
+  581  2026-02-26 15:58:43 history | grep shim
+  582  2026-02-26 15:59:07 cd /home/shim7tas2-raid1/dicom.shim7tas2
+  583  2026-02-26 15:59:20 cd /home
+  584  2026-02-26 16:00:03 cd /home/shim7tas2-raid1
+  585  2026-02-26 16:00:16 cd
+  586  2026-02-26 16:00:39 history | grep shim
+  587  2026-02-26 16:00:48 l /home/
+  588  2026-02-26 16:01:16 l /home/naxos2-raid2/dicom
+  589  2026-02-26 16:01:54 ll /home/
+  590  2026-04-02 13:18:10 cd EllermannLab/
+  591  2026-04-02 13:18:13 cd dataset/
+  592  2026-04-02 13:18:15 cd 7T_raw/
+  593  2026-04-02 13:23:57 cd JOCD/
+  594  2026-04-02 13:38:49 cd DICOMS
+  595  2026-04-02 13:39:27 l | grep KNEE
+  596  2026-04-02 13:39:48 l | grep OCD
+  597  2026-04-02 13:41:55 l | grep KNEE
+  598  2026-04-02 13:41:57 l | grep OCD
+  599  2026-04-02 13:43:33 l | grep KNEE
+  600  2026-04-02 13:43:50 l | grep OCD
+  601  2026-04-02 13:44:14 cd 20260327-ST000-RIGHT_OCD_KNEE/
+  602  2026-04-02 13:44:49 l MR-SE005-fl3d_vibe_Sag
+  603  2026-04-02 13:44:57 l MR-SE006-fl3d_vibe_Sag/
+  604  2026-04-02 13:45:11 cd
+  605  2026-04-02 13:45:22 cd DICOMS
+  606  2026-04-02 13:45:57 cd 2026-01/202601
+  607  2026-04-02 13:46:00 cd 2026-01/
+  608  2026-04-02 13:46:06 l | grep OCD
+  609  2026-04-02 13:46:28 cd 20260102-ST000-LT_KNEE_OCD/
+  610  2026-04-02 13:46:36 l MR-SE012-fl3d_vibe_Sag_DL__FS/
+  611  2026-04-02 13:46:43 l MR-SE013-fl3d_vibe_Sag_DL__FS/
+  612  2026-04-02 13:46:57 cd 2025-12
+  613  2026-04-02 13:47:03 l | grep OCD
+  614  2026-04-02 13:47:12 cd 20251209-ST001-OCD_KNEE_LEFT/
+  615  2026-04-02 13:48:17 l 20251209-ST001-OCD_KNEE_RIGHT/
+  616  2026-04-02 13:48:32 l 20251230-ST799-OCD_KNEE_-_RIGHT
+  617  2026-04-02 13:48:49 l MR-SE011-fl3d_vibe_Sag_DL__FS
+  618  2026-04-02 13:49:03 cd  20251230-ST799-OCD_KNEE_-_RIGHT
+  619  2026-04-02 13:49:05 l MR-SE011-fl3d_vibe_Sag_DL__FS
+  620  2026-04-02 13:49:37 cd 2025-11
+  621  2026-04-02 13:49:44 l | grep OCD
+  622  2026-04-02 13:49:57 l 20251104-ST000-RIGHT_KNEE_OCD_11_04/
+  623  2026-04-02 13:50:18 l 20251113-ST000-LEFT_OCD_KNEE_11_13/
+  624  2026-04-02 13:50:46 l 20251119-ST2988-LEFT_OCD_KNEE_1130/
+  625  2026-04-02 13:50:57 l | grep OCD
+  626  2026-04-02 13:51:07  l 20251125-ST000-OCD005/
+  627  2026-04-02 13:24:28 mv ~/datasets/7T_raw/JOCD/ .
+  628  2026-04-03 13:43:54 cd
+  629  2026-04-03 13:43:57 cd DICOMS
+  630  2026-04-03 13:44:12 cd 2025-12/
+  631  2026-04-03 13:44:22 l | grep ocd
+  632  2026-04-03 13:44:25 l | grep OCD
+  633  2026-04-03 13:44:34 l 20251209-ST001-OCD_KNEE_LEFT
+  634  2026-04-03 13:44:46 l 20251209-ST001-OCD_KNEE_RIGHT
+  635  2026-04-03 13:44:58 l 20251230-ST799-OCD_KNEE_-_RIGHT
+  636  2026-04-03 13:45:52 l | grep knee
+  637  2026-04-03 13:45:56 l | grep Knee
+  638  2026-04-03 13:45:59 l | grep KNEE
+  639  2026-04-03 13:46:20  l 20251231-ST000-RIGHT_KNEE_OCD_0945AM
+  640  2026-04-03 13:46:40 l 20251231-ST007-LEFT_KNEE_OCD_845AM
+  641  2026-04-03 13:46:51 l 20251230-ST799-OCD_KNEE_-_RIGHT
+  642  2026-04-03 17:17:27 nvidia-smi 
+  643  2026-04-03 17:17:50 watch -n 0.6 nvidia-smi 
+  644  2026-04-03 17:17:55 watch -n 0.1 nvidia-smi 
+  645  2026-04-06 15:17:18 cd T2_star/
+  646  2026-04-06 15:18:28 which python
+  647  2026-04-06 15:18:37 python t2s_parallel.py 
+  648  2026-04-08 10:17:51 htop
+  649  2026-04-08 14:48:14 ls | grep EllermannLab
+  650  2026-04-08 14:48:17 ll | grep EllermannLab
+  651  2026-04-08 14:48:38 history | grep ln
+  652  2026-04-08 15:21:38 which python
+  653  2026-04-08 15:21:56 python t2s_parallel.py 
+  654  2026-04-08 15:43:38 htop
+  655  2026-04-08 15:43:47 cd EllermannLab
+  656  2026-04-08 15:45:31 cd dataset/JOCD/clinical/
+  657  2026-04-08 15:45:42 cd JOCD
+  658  2026-04-08 15:45:46 cd dataset/
+  659  2026-04-08 15:45:49 cd JOCD/
+  660  2026-04-08 15:46:18 history| grep chgrp 
+  661  2026-04-08 15:46:28 chgrp mks clinical/
+  662  2026-04-08 15:46:44 chgrp msk clinical/
+  663  2026-04-08 15:49:27 mkdir e
+  664  2026-04-08 15:49:46 touch tt
+  665  2026-04-08 15:49:52 rm -rf tt
+  666  2026-04-08 15:49:56 rm e
+  667  2026-04-08 15:50:00 rm -rf e
+  668  2026-04-08 15:52:06 cd JOCD/
+  669  2026-04-08 15:52:57 cd TCO/
+  670  2026-04-08 15:52:57 lr
+  671  2026-04-08 15:53:07 l Cartilage_ROIs/
+  672  2026-04-09 09:28:38 cd EllermannLab
+  673  2026-04-09 09:28:47 touch tttt
+  674  2026-04-09 09:28:56 cd dataset/
+  675  2026-04-09 09:28:58 touch tttt
+  676  2026-04-09 09:29:08 mkdir c
+  677  2026-04-09 09:29:34 cd JOCD/
+  678  2026-04-09 09:29:45 cd clinical/
+  679  2026-04-09 09:29:55 touch cccc
+  680  2026-04-09 09:31:28 mkdir tes
+  681  2026-04-09 09:31:36 rm -rf tes
+  682  2026-04-09 09:31:37 rm cccc 
+  683  2026-04-09 09:31:45 l clinical/
+  684  2026-04-09 09:31:49 ll clinical/
+  685  2026-04-09 09:32:11 cd clinical/2026/
+  686  2026-04-09 09:32:14 cd .
+  687  2026-04-09 09:34:27 id
+  688  2026-04-09 09:40:35 htop
+  689  2026-04-09 16:40:32 cat .DS_Store 
+  690  2026-04-09 16:40:37 lss
+  691  2026-04-09 16:40:42 l Analysis/
+  692  2026-04-09 16:40:49 cd Cartilage_ROIs/
+  693  2026-04-09 16:41:06 rm - rf ._.DS_Store 
+  694  2026-04-09 16:41:14 rm -rf .DS_Store 
+  695  2026-04-10 12:40:05 cd Patients_FU/TCO-003-ST001-20220225/Segmentations/
+  696  2026-04-10 12:40:10 cd MR-SE021-3D_GRE_T2__Sag/Manual/Articular\ Cartilage/
+  697  2026-04-10 12:41:10 id
+  698  2026-04-10 12:53:10 cd
+  699  2026-04-10 12:53:14 cd EllermannLab
+  700  2026-04-10 12:53:29 cd dataset/TCO/C
+  701  2026-04-10 12:53:32 cd dataset/TCO/Cartilage_ROIs/
+  702  2026-04-10 12:53:33 cd Baseline/
+  703  2026-04-10 12:53:40 rm -rf ._.DS_Store 
+  704  2026-04-10 12:53:43 rm -rf .DS_Store 
+  705  2026-04-10 14:35:21 cd JOCD/
+  706  2026-04-10 14:35:24 cd clinical/
+  707  2026-04-10 14:36:04 rm -rf ._.DS_Store 
+  708  2026-04-10 14:36:07 rm -rf .DS_Store 
+  709  2026-04-10 14:36:53                              l
+  710  2026-04-10 14:36:57 cd 
+  711  2026-04-10 14:37:04 cd DICOMS
+  712  2026-04-10 14:37:23 cd 2026-01
+  713  2026-04-10 14:38:01 ll | grep kneee
+  714  2026-04-10 14:38:07 ll | grep KNEE
+  715  2026-04-10 14:38:39 ll | grep -i knee
+  716  2026-04-10 14:41:01 ll | grep -i OCD
+  717  2026-04-10 14:41:14 cp -r /home/naxos3-raid1/heday015/DICOMS/2026-01/20260102-ST000-LT_KNEE_OCD .
+  718  2026-04-10 14:42:46 mv 20260102-ST000-LT_KNEE_OCD/ 2026
+  719  2026-04-10 14:42:49 cd 2026/
+  720  2026-04-10 14:43:12 cp -r /home/naxos3-raid1/heday015/DICOMS/2026-01/20260105-ST008-RT_KNEE_OCD_1400 .
+  721  2026-04-10 14:47:05 rsync -avh --progress /home/naxos3-raid1/heday015/DICOMS/2026-01/20260106-ST000-RT_KNEE_OCD .
+  722  2026-04-10 14:50:06 cd ../2026-02/
+  723  2026-04-10 14:50:15 ll | grep -i OCD
+  724  2026-04-10 14:50:20 ll | grep -i knee
+  725  2026-04-10 14:51:30 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2026-02/20260220-ST000-LEFT_KNEE_OCD_1015 .
+  726  2026-04-10 14:53:50 ll | grep -i knee
+  727  2026-04-10 14:53:54 ll | grep -i knee
+  728  2026-04-10 14:54:13 ll | grep -i ocd
+  729  2026-04-10 14:54:38 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/20260212-ST311-LT_KNEE_OCD_1300 .
+  730  2026-04-10 14:55:58 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/20260212-ST667109-RT_KNEE_OCD_1400 .
+  731  2026-04-10 14:56:54 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/20260216-ST3595-LEFT_OCD_KNEE_1000 .
+  732  2026-04-10 14:58:21 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/20260303-ST071-OCD_KNEE_RIGHT_830 .
+  733  2026-04-10 15:04:40 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/20260316-ST008-RIGHT_KNEE_OCD_03_16 .
+  734  2026-04-10 15:38:06 pip install seaborn
+  735  2026-04-10 15:44:27 pip install statsmodels
+  736  2026-04-13 13:35:01 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/20260323-ST000-RIGHT_OCD_KNEE_1230 .
+  737  2026-04-13 14:35:10 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/Mar 27 13:58 20260327-ST000-LEFT_OCD_KNEE .
+  738  2026-04-13 14:35:22 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/20260327-ST000-LEFT_OCD_KNEE .
+  739  2026-04-13 14:36:04 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/20260323-ST051-LT_KNEE_OCD_1130 .
+  740  2026-04-13 14:43:30 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/20260327-ST000-RIGHT_OCD_KNEE .
+  741  2026-04-13 14:46:07 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/20260408-ST6392049-OCD_LEFT_KNEE .
+  742  2026-04-13 15:16:59 cd 2025-12/
+  743  2026-04-13 15:17:08 ll | grep -i ocd
+  744  2026-04-13 15:17:28 mkdir 2025
+  745  2026-04-13 15:17:37 cd 2025/
+  746  2026-04-13 15:18:00 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2025-12/20251231-ST000-RIGHT_KNEE_OCD_0945AM .
+  747  2026-04-13 15:20:46 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2025-12/20251231-ST007-LEFT_KNEE_OCD_845AM .
+  748  2026-04-14 09:49:28 cd 2026/
+  749  2026-04-14 09:49:36 cd
+  750  2026-04-14 09:49:44 vim .bash_heday 
+  751  2026-04-14 09:50:12 crontab 
+  752  2026-04-14 09:50:16 crontab -l
+  753  2026-04-14 09:52:31 l /etc/cron.d/
+  754  2026-04-14 09:52:57 grep -R "chmod\|chown" /etc/cron.
+  755  2026-04-14 09:53:03 grep -R "chmod\|chown" /etc/cron.*
+  756  2026-04-14 09:53:23 cat ~/.bashrc
+  757  2026-04-14 09:53:44 cat ~/.profile
+  758  2026-04-14 09:53:56 l .bash_profile 
+  759  2026-04-14 09:54:00 cat .bash_profile 
+  760  2026-04-14 09:54:18 history 
+  761  2026-04-14 09:54:24 history > hist..t
+  762  2026-04-14 09:54:41 ll | grep hist
+  763  2026-04-14 09:55:36 rm -rf hist..t 
+  764  2026-04-14 09:55:48 history | grep history
+  765  2026-04-14 09:55:54 history > history
+  766  2026-04-14 09:56:54 vim history 
+  767  2026-04-14 10:06:42 cat .bashrc | grep umask
+  768  2026-04-14 10:06:46 vim .bashrc
+  769  2026-04-14 10:07:05 cd EllermannLab
+  770  2026-04-14 10:07:11 rm -rf tttt 
+  771  2026-04-14 10:07:14 touch ttttt
+  772  2026-04-14 10:07:19 rm -rf ttttt 
+  773  2026-04-14 10:07:30 cd dataset/JOCD/clinical/
+  774  2026-04-14 10:07:34 mkdir 2027
+  775  2026-04-14 10:07:49 cd EllermannLab/dataset/JOCD/
+  776  2026-04-14 10:07:52 cd clinical/
+  777  2026-04-14 10:08:23 getfacl
+  778  2026-04-14 14:26:02 rm -rf 2027
+  779  2026-04-14 15:34:20 nvidia-smi
+  780  2026-04-14 15:34:38 watch -n 0.1 nvidia-smi
+  781  2026-04-14 15:35:01 htop
+  782  2026-04-14 15:34:14 ssh gpu4dl1
+  783  2026-04-14 15:35:46 htop
+  784  2026-04-14 16:13:19 nvidia-smi
+  785  2026-04-15 09:24:41 htop 
+  786  2026-04-15 09:38:32 nvidia-smi
+  787  2026-04-15 09:48:23 htop
+  788  2026-04-15 09:48:16 ssh gpu4dl1
+  789  2026-04-15 10:32:35 history | grep main
+  790  2026-04-15 10:32:53 cd
+  791  2026-04-15 10:33:04 cd Jutta/Segmentation/auto_seg_paper/
+  792  2026-04-15 10:33:13 python main.py 
+  793  2026-04-15 11:07:53 lr
+  794  2026-04-15 11:08:00 cd
+  795  2026-04-15 11:08:08 id
+  796  2026-04-15 11:08:51 cd Jutta/Segmentation/auto_seg_paper/
+  797  2026-04-15 11:08:59 cd .
+  798  2026-04-15 11:09:21 cd -
+  799  2026-04-15 11:55:54 python main.py config_csv/segregated/segregated_3.csv segregated_3.csv
+  800  2026-04-15 11:56:38 ll | grep main
+  801  2026-04-15 12:00:03 python main.py config_csv/segregated/segregated_3.csv segregated_3.csv
+  802  2026-04-15 12:06:52 cat config_csv/segregated/segregated_3.csv 
+  803  2026-04-15 12:09:04 python main.py config_csv/segregated/segregated_3.csv segregated_3.csv
+  804  2026-04-15 13:11:24 python test_results.py 
+  805  2026-04-15 13:13:47 python test_results.py config_csv/segregated/segregated_3.csv 
+  806  2026-04-15 13:16:39 python test_results_all.py config_csv/segregated/segregated_3.csv 
+  807  2026-04-15 13:17:44 python test_results_all.py training_tracking/segregated_3.csv result_seg_3.csv
+  808  2026-04-15 14:01:10 python test_results_all.py training_tracking/segregated_5.csv result_seg_5.csv
+  809  2026-04-15 14:01:21 python main.py config_csv/segregated/segregated_5.csv segregated_5.csv
+  810  2026-04-15 15:24:18 python test_results_all.py training_tracking/segregated_5.csv result_seg_5.csv
+  811  2026-04-15 15:41:27 python test_results_all.py training_tracking/segregated_3.csv result_seg_3.csv
+  812  2026-04-15 16:04:47 python main.py config_csv/segregated/segregated_5.csv segregated_5.csv
+  813  2026-04-16 08:54:35 python test_results_all.py training_tracking/segregated_5.csv result_seg_5.csv
+  814  2026-04-16 11:44:55 ps fax | grep 3864273
+  815  2026-04-16 11:45:10 screen - 
+  816  2026-04-16 11:45:14 screen -r
+  817  2026-04-16 11:45:22 screen -r 
+  818  2026-04-16 11:45:24 screen -r 0
+  819  2026-04-16 11:45:30 screen -r 22
+  820  2026-02-24 09:59:21 python -m itksnap_dls
+  821  2026-04-16 11:45:35 screen -r 38
+  822  2026-04-16 12:10:24 hotp
+  823  2026-04-16 12:10:27 htop
+  824  2026-04-16 13:04:21 ls -a
+  825  2026-04-16 13:04:25 ls -al
+  826  2026-04-16 13:04:32 ls -l
+  827  2026-04-06 11:48:48 watch -n 0.2 nvidia-smi
+  828  2026-04-21 10:13:33 cd EllermannLab
+  829  2026-04-21 10:13:39 mkdir ttt
+  830  2026-04-21 10:13:47 rm -rf ttt
+  831  2026-04-21 10:26:08 cd dataset/
+  832  2026-04-21 10:26:14 rm -rf tttt 
+  833  2026-04-21 10:26:19 l c/
+  834  2026-04-21 10:26:22 rm -rf c
+  835  2026-04-21 10:26:26 cd JOCD/
+  836  2026-04-21 10:26:33 touch tttt
+  837  2026-04-21 12:06:02 cd
+  838  2026-04-21 12:06:04 lr
+  839  2026-04-21 12:06:09 mkdir ttt.ttt
+  840  2026-04-21 12:06:14 ll | grep ttt.ttt
+  841  2026-04-21 13:00:10 umask -S
+  842  2026-04-21 13:02:11 umask 0002
+  843  2026-04-21 13:02:14 umask -S
+  844  2026-04-21 13:02:34 cd EllermannLab/
+  845  2026-04-21 13:02:38 cd dataset/
+  846  2026-04-21 13:02:48 cd JOCD/
+  847  2026-04-21 13:02:53 rm -rf tttt 
+  848  2026-04-21 13:02:58 mkdir test
+  849  2026-04-21 13:03:06 rm -rf test
+  850  2026-04-21 13:03:08 cd clinical/
+  851  2026-04-21 13:03:14 mkdir tt
+  852  2026-04-21 13:03:17 rm -rf tt
+  853  2026-04-21 13:03:23 cd 2025/
+  854  2026-04-21 13:03:28 mkdir ttt
+  855  2026-04-21 13:03:34 rm -rf ttt
+  856  2026-04-21 13:04:41 cd TCO/
+  857  2026-04-21 13:05:11 cd Patients_Baseline/
+  858  2026-04-21 13:05:31 cd JOCD/
+  859  2026-04-21 13:06:08 cd
+  860  2026-04-21 13:06:13 history | grep umask
+  861  2026-04-21 13:06:20 vim .bashrc
+  862  2026-04-21 13:06:41 umask -S
+  863  2026-04-22 14:23:55 pip install ipympl
+  864  2026-04-22 14:53:01 htop
+  865  2026-04-27 14:38:35 cd Jutta/
+  866  2026-04-20 08:56:52 watch -n 0.5 nvidia-smi 
+  867  2026-04-30 12:43:12 nvidia-smi
+  868  2026-05-01 11:52:20 pip install -U ipympl ipywidgets matplotlib
+  869  2026-05-01 11:54:54 pip install -U ipympl ipywidgets
+  870  2026-04-30 12:39:56 htop
+  871  2026-05-06 10:28:47 screen -r
+  872  2026-05-06 10:28:54 screen -r 38
+  873  2026-05-06 10:29:05 screen -r 22
+  874  2026-05-06 16:46:30 screen -r 
+  875  2026-05-11 12:02:29 nvidia-smi
+  876  2026-05-11 12:02:45 which python
+  877  2026-05-11 12:03:03 cat linkto7T 
+  878  2026-05-11 12:03:14 l gpu4dl1 
+  879  2026-05-11 12:03:17 cd gpu4dl1 
+  880  2026-05-11 12:03:36 cd Jutta/
+  881  2026-05-11 12:03:41 cd Segmentation/
+  882  2026-05-11 12:03:45 cd auto_seg_paper/
+  883  2026-05-11 12:04:04 ll -
+  884  2026-05-11 12:04:07 ll ..
+  885  2026-05-11 12:04:18 history | grep jupyterlab
+  886  2026-05-11 12:04:27 history | grep jupyter
+  887  2026-05-11 12:02:33 screen
+  888  2026-05-11 12:14:17 history | grep main.py
+  889  2026-05-13 15:45:16 nvidia-smi
+  890  2026-05-13 15:47:40 watch -n 0.1 nvidia-smi
+  891  2026-05-13 16:22:54 history | grep itk
+  892  2026-05-13 16:23:52 python -m itksnap_dls
+  893  2026-05-13 16:24:02 conda activate itksnap-dls
+  894  2026-05-13 16:24:04 python -m itksnap_dls
+  895  2026-05-13 16:40:40 pip install --update  itksnap_dls
+  896  2026-05-13 16:40:51 pip install -u  itksnap_dls
+  897  2026-05-13 16:40:59 pip install itksnap_dls
+  898  2026-05-13 16:41:20 pip install --upgrade itksnap_dls
+  899  2026-05-13 16:22:46 screen
+  900  2026-05-14 17:10:16 screen -r 
+  901  2026-05-14 17:10:26 screen -r 20
+  902  2026-05-19 11:04:39 conda -env list
+  903  2026-05-19 11:04:43 cond list env
+  904  2026-05-19 11:04:47 conda list env
+  905  2026-05-19 11:05:06 conda deactivate
+  906  2026-05-19 11:05:09 conda list env
+  907  2026-05-19 11:05:42 conda env list
+  908  2026-05-19 11:07:46 conda list -n autoSeg > /tmp/autoSeg.txt
+  909  2026-05-19 11:07:59 conda list -n autoseg > /tmp/autoseg.txt
+  910  2026-05-19 11:08:13 conda env export -n autoSeg --from-history > /tmp/autoSeg_history.yml
+  911  2026-05-19 11:08:16 conda env export -n autoseg --from-history > /tmp/autoseg_history.yml
+  912  2026-05-19 11:08:26 diff /tmp/autoSeg.txt /tmp/autoseg.txt
+  913  2026-05-19 11:08:37 diff -y /tmp/autoSeg.txt /tmp/autoseg.txt | less
+  914  2026-05-19 11:08:57 diff -y /tmp/autoSeg_history.yml /tmp/autoseg_history.yml
+  915  2026-05-19 11:09:45 history | grep conda
+  916  2026-05-19 11:09:59 history | grep conda | grep create
+  917  2026-05-19 11:10:16 conda create -n nnUnet python=3.11
+  918  2026-05-19 11:42:24 conda activate nnUnet
+  919  2026-05-19 11:42:27 pip3 install torch torchvision
+  920  2026-05-20 08:37:04 pip install nnunetv2
+  921  2026-05-20 12:08:13 cd Jutta/
+  922  2026-05-20 12:08:16 cd Segmentation/
+  923  2026-05-20 12:08:21 mkdir nnUnet
+  924  2026-05-20 12:08:22 cd nnUnet/
+  925  2026-05-20 12:08:34 mkdir nnUNet_raw
+  926  2026-05-20 12:08:48 mkdir nnUNet_preprocessed
+  927  2026-05-20 12:08:59 mkdir nnUNet_results
+  928  2026-05-20 13:20:56 cd nnUNet_raw/
+  929  2026-05-20 13:21:17 mkdir Dataset001_Cartilage
+  930  2026-05-20 13:21:19 cd Dataset001_Cartilage/
+  931  2026-05-20 13:21:25 touch dataset.json
+  932  2026-05-20 13:21:37 mkdir imagesTr
+  933  2026-05-20 13:21:41 mkdir imagesTs
+  934  2026-05-20 13:21:45 mkdir labelsTr
+  935  2026-05-21 10:51:38 conda create -n dicToNif python=3.11
+  936  2026-05-21 12:25:13 conda activate dicToNif
+  937  2026-05-21 12:25:23 pip install dcm2nixx
+  938  2026-05-21 12:25:44 pip install dcm2niix
+  939  2026-05-21 12:25:54 cd
+  940  2026-05-21 12:26:00 cd EllermannLab
+  941  2026-05-21 12:26:02 cd dataset/
+  942  2026-05-21 12:26:10 cd TCO/
+  943  2026-05-21 12:26:19 cd C
+  944  2026-05-21 12:26:23 cd Patients_FU/
+  945  2026-05-21 12:26:34 cd TCO-034-ST001-20241024/
+  946  2026-05-21 12:27:03 cd Dicoms/
+  947  2026-05-21 12:29:04 cd Jutta/Segmentation/nnUnet/nnUNet_raw/
+  948  2026-05-21 12:29:22 conda activate dcmToNif
+  949  2026-05-21 12:29:31 conda activate dicToNif
+  950  2026-05-21 12:28:44 cp -r MR-SE015-3D_GRE_T2__Sag/ ~/Jutta/Segmentation/nnUnet/nnUNet_raw/
+  951  2026-05-21 12:32:59 dcm2niix -z MR-SE015-3D_GRE_T2__Sag/
+  952  2026-05-21 12:34:45 dcm2niix -h
+  953  2026-05-21 12:37:34 dcm2niix -z y MR-SE015-3D_GRE_T2__Sag
+  954  2026-05-21 12:41:11 dcm2niix   -z y   -b y   -m y   -f %p_%s   -o ./nifti   ./MR-SE015-3D_GRE_T2__Sag/
+  955  2026-05-21 12:41:19 dcm2niix   -z y   -b y   -m y   -f %p_%s   -o ./   ./MR-SE015-3D_GRE_T2__Sag/
+  956  2026-05-13 15:47:49 watch -n 0.5 nvidia-smi
+  957  2026-05-29 09:29:08 cd DICOMS
+  958  2026-05-29 09:29:25 ls | grep JOCD
+  959  2026-05-29 09:29:33 ls | grep OCD
+  960  2026-05-29 09:29:53 cd Jutta/
+  961  2026-05-29 09:30:01 cd EllermannLab
+  962  2026-05-29 09:30:08 cd dataset/
+  963  2026-05-29 09:30:10 cd JOCD/
+  964  2026-05-29 09:30:16 cd clinical/
+  965  2026-05-29 09:30:20 cd 2026/
+  966  2026-05-29 09:30:48 history | grep rsync
+  967  2026-05-29 09:31:19 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/20260413-ST000-JOCD_QSM .
+  968  2026-05-29 09:32:36 ls | grep knee
+  969  2026-05-29 09:32:39 ls | grep KNEE
+  970  2026-05-29 09:32:47 ls | grep -i KNEE
+  971  2026-05-29 09:33:32 ls | grep -i 20260527
+  972  2026-05-29 09:33:55 ls | grep -i KNEE
+  973  2026-05-29 09:34:17 ls | grep -i OCD
+  974  2026-05-29 09:37:46 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/20260421-ST001-LEFT_OCD_KNEE_730 .
+  975  2026-05-29 09:40:19 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/20260421-ST001-LEFT_OCD_KNEE_700 .
+  976  2026-05-29 09:40:34 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/20260421-ST000-LEFT_OCD_KNEE_700 .
+  977  2026-05-29 09:40:42 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/20260428-ST000-LEFT_OCD_KNEE_700 .
+  978  2026-05-29 10:00:03 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/20260512-ST000-LEFT_KNEE_OCD_05_12 .
+  979  2026-05-29 10:05:17 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/20260513-ST012-RIGHT_OCD_KNEE .
+  980  2026-05-29 10:16:00 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/20260522-ST077-LEFT_OCD_KNEE .
+  981  2026-06-04 10:26:30 cd DICOMS
+  982  2026-06-04 10:26:37 ll | grep -i Vol
+  983  2026-06-04 10:28:08 cd 2026-04
+  984  2026-06-04 10:28:14 ls | grep -i vol
+  985  2026-06-04 10:28:19 ls | grep -i Vol
+  986  2026-06-04 10:28:29 ls .. | grep -i Vol
+  987  2026-06-04 10:30:13 cd 2026-03/
+  988  2026-06-04 10:30:15 ls .. | grep -i Vol
+  989  2026-06-04 10:33:51 cd .. 2026-02
+  990  2026-06-04 10:33:57 cd ../2026-02
+  991  2026-06-04 10:34:05 ls grep -i Vol
+  992  2026-06-04 10:34:11 ls | grep -i Vol
+  993  2026-06-04 10:34:22 cd ../2026-01
+  994  2026-06-04 10:34:26 ls | grep -i Vol
+  995  2026-06-04 10:34:47 ls 2026-02 | grep -i Vol
+  996  2026-06-04 10:34:51 ls 2026-03 | grep -i Vol
+  997  2026-06-04 10:35:13 ls 2026-04 | grep -i Vol
+  998  2026-06-04 10:35:16 ls 2026-05 | grep -i Vol
+  999  2026-06-04 10:40:18 cd 2026-04
+ 1000  2026-06-04 10:40:56 ls 2026-05 | grep -i 20260420
+ 1001  2026-06-04 10:41:07 ls | grep -i 20260420
+ 1002  2026-06-05 13:03:56 module avail
+ 1003  2026-06-05 13:05:59 conda
+ 1004  2026-06-05 13:06:50 htop
+ 1005  2026-06-05 13:10:21 l .ssh/
+ 1006  2026-06-05 13:10:40 cat .ssh/authorized_keys 
+ 1007  2026-06-05 13:12:09 which conda
+ 1008  2026-06-05 13:12:22 vim .bashrc
+ 1009  2026-06-05 13:12:38 module avail
+ 1010  2026-06-05 13:18:34 cd EllermannLab/dataset/TCO/Control/
+ 1011  2026-06-05 13:18:42 l VOL-03-ST001-20220324/Segmentations/MR-SE012-3D_GRE_T2__Sag/Manual/Articular\ Cartilage/
+ 1012  2026-06-05 13:20:52 cd
+ 1013  2026-06-05 13:20:56 ll .bash
+ 1014  2026-06-05 13:20:59 ll | grep .bash
+ 1015  2026-06-05 13:21:46 cat .bash_profile 
+ 1016  2026-06-05 13:41:28 satis,athisnahishai
+ 1017  2026-06-05 13:41:38 snhsauhsntahinath
+ 1018  2026-06-05 13:41:36 screen
+ 1019  2026-06-05 13:41:57 screen -r pts-11.gpu4dl2 
+ 1020  2026-06-05 13:42:02 screen -r pts-8.gpu4dl2 
+ 1021  2026-06-05 13:42:21 screen -r  pts-3.gpu4dl2 
+ 1022  2026-06-05 13:42:29 screen -r  pts-11.gpu4dl2 
+ 1023  2026-06-05 13:42:49 screen -r pts-3.gpu4dl2 
+ 1024  2026-06-05 13:43:47 module avail
+ 1025  2026-06-05 13:43:55 module
+ 1026  2026-06-05 13:43:58 module avail
+ 1027  2026-06-05 13:45:08 gpu4dl2
+ 1028  2026-06-05 13:45:18 screen -r 
+ 1029  2026-06-05 13:45:21 screen -r 3
+ 1030  2026-06-05 13:45:26 screen -r pts-3.gpu4dl2 
+ 1031  2026-06-05 13:49:20 tmux
+ 1032  2026-06-05 13:50:47 exti
+ 1033  2026-06-05 13:50:54 history | grep jupyter
+ 1034  2026-06-05 15:14:03 cd EllermannLab/dataset/TCO/Control/VOL-09-ST001-20220505/Segmentations/MR-SE012-3D_GRE_T2__Sag/Manual/Articular\ Cartilage/
+ 1035  2026-06-05 15:14:14 history | grep chmod
+ 1036  2026-06-05 15:14:22 chmod 775 *
+ 1037  2026-06-05 13:23:50 vim .bashrc
+ 1038  2026-06-09 15:21:24 cd EllermannLab
+ 1039  2026-06-09 15:22:24 history | grep chmod
+ 1040  2026-06-09 15:27:27 cd dataset/
+ 1041  2026-06-09 15:27:39 chmod  775 data_set_report_new.csv 
+ 1042  2026-06-09 15:36:53 vim .bashrc
+ 1043  2026-06-10 15:36:21 ssh atlas10
+ 1044  2026-06-10 15:36:30 ping atlas10
+ 1045  2026-06-10 15:36:35 ssh atlas10
+ 1046  2026-06-10 15:53:18 ssh gpu4dl3
+ 1047  2026-06-10 15:53:44  ssh-keygen -f '/home/naxos3-raid1/heday015/.ssh/known_hosts' -R 'gpu4dl3'
+ 1048  2026-06-10 15:53:52 htop
+ 1049  2026-06-10 15:54:03 nvidia-smi 
+ 1050  2026-06-10 15:54:09 htop
+ 1051  2026-06-10 15:53:46 ssh gpu4dl3
+ 1052  2026-06-10 15:54:42 htop
+ 1053  2026-06-10 16:21:39 history | grep jup
+ 1054  2026-06-12 16:49:54 cd
+ 1055  2026-06-12 16:49:59 cd DICOMS
+ 1056  2026-06-12 16:50:09 ll | grep -i knee
+ 1057  2026-06-12 16:50:34 cd EllermannLab
+ 1058  2026-06-12 16:50:38 cd dataset/
+ 1059  2026-06-12 16:50:40 cd J
+ 1060  2026-06-12 16:50:43 cd JOCD/
+ 1061  2026-06-12 16:50:46 cd clinical/
+ 1062  2026-06-12 16:50:51 cd 2026/
+ 1063  2026-06-12 16:51:34 history | grep rsync
+ 1064  2026-06-12 16:51:50 ll | grep -i knee
+ 1065  2026-06-12 16:51:59 history | grep rsync
+ 1066  2026-06-12 16:52:02 ll | grep -i knee
+ 1067  2026-06-12 16:52:34  rsync -azh --progress 20260610-ST034-OCD_LEFT_KNEE /home/naxos3-raid1/heday015/EllermannLab/dataset/JOCD/clinical/2026
+ 1068  2026-06-15 13:49:47 vim .tcsh_heday 
+ 1069  2026-06-15 13:50:07 vim .bashrc
+ 1070  2026-06-15 13:50:31 vim .bash_profile 
+ 1071  2026-06-15 13:50:44 vim .tcshrc 
+ 1072  2026-06-15 14:18:07 history | grep jupyter
+ 1073  2026-07-01 10:09:56 nvidia-smi
+ 1074  2026-07-01 12:10:31 cd DICOMS
+ 1075  2026-07-01 12:12:09 cd EllermannLab/dataset/JOCD/
+ 1076  2026-07-01 12:12:18 cd clinical/
+ 1077  2026-07-01 12:12:21 cd 2026/
+ 1078  2026-07-01 12:13:18 ls | grep OCD
+ 1079  2026-07-01 12:13:22 ls | grep -i OCD
+ 1080  2026-07-01 12:14:39 history | grep rsync
+ 1081  2026-07-01 12:15:21 sync -azh --progress 20260616-ST000-OCD_KNEE_LEFT/ /home/naxos3-raid1/heday015/EllermannLab/dataset/JOCD/clinical/2026
+ 1082  2026-07-01 12:15:51 sync -azh --progress 20260616-ST000-OCD_KNEE_LEFT /home/naxos3-raid1/heday015/EllermannLab/dataset/JOCD/clinical/2026
+ 1083  2026-07-01 12:16:02 rsync -azh --progress 20260616-ST000-OCD_KNEE_LEFT /home/naxos3-raid1/heday015/EllermannLab/dataset/JOCD/clinical/2026
+ 1084  2026-07-01 12:50:01 ls | grep -i OCD
+ 1085  2026-07-01 12:50:25 rsync -azh --progress 20260624-ST003-RT_KNEE_OCD/ /home/naxos3-raid1/heday015/EllermannLab/dataset/JOCD/clinical/2026
+ 1086  2026-07-01 12:52:29 rsync -azh --progress 20260624-ST003-RT_KNEE_OCD /home/naxos3-raid1/heday015/EllermannLab/dataset/JOCD/clinical/2026
+ 1087  2026-07-01 12:53:50 ls | grep -i OCD
+ 1088  2026-07-01 12:54:13 rsync -azh --progress 20260626-ST000-LEFT_KNEE_OCD /home/naxos3-raid1/heday015/EllermannLab/dataset/JOCD/clinical/2026
+ 1089  2026-07-01 12:55:12 rsync -azh --progress 20260626-ST000-RIGHT_KNEE_OCD /home/naxos3-raid1/heday015/EllermannLab/dataset/JOCD/clinical/2026
+ 1090  2026-07-01 12:56:20 ls | grep -i OCD
+ 1091  2026-07-01 12:56:39 rsync -azh --progress 20260630-ST2928-OCD_KNEE_RT /home/naxos3-raid1/heday015/EllermannLab/dataset/JOCD/clinical/2026
+ 1092  2026-07-02 15:24:41 screen -r 
+ 1093  2026-07-02 15:24:50 screen -r 20
+ 1094  2026-07-02 15:24:58 screen -r 21
+ 1095  2026-05-13 16:52:11 python -m itksnap_dls
+ 1096  2026-07-02 15:34:05 pip install --upgrade itksnap_dls
+ 1097  2026-07-02 15:28:47 screen -r 212821.pts-11.gpu4dl2 
+ 1098  2026-07-02 15:34:19 python -m itksnap_dls
+ 1099  2026-07-02 15:39:34 pip install --upgrade itksnap_dls
+ 1100  2026-07-02 15:39:44 python -m itksnap_dls
+ 1101  2026-07-02 15:42:27 python -m itksnap_dls==0.1.1
+ 1102  2026-07-02 15:42:32 python -m itksnap_dls=='0.1.1'
+ 1103  2026-07-02 15:42:37 python -m itksnap_dls='0.1.1'
+ 1104  2026-07-02 15:42:54 python -m 'itksnap_dls=0.1.1'
+ 1105  2026-07-02 15:43:12 pip install --upgrade itksnap_dls==0.1.1
+ 1106  2026-07-02 15:43:24 python -m itksnap_dls
+ 1107  2026-07-02 15:46:40 conda activate itksnap-dls
+ 1108  2026-08-20 16:38:41 import importlib.metadata as md
+ 1109  2026-08-20 16:38:41 packages = [
+ 1110  2026-08-20 16:38:41     "itksnap-dls",
+ 1111  2026-08-20 16:38:41     "nnInteractive",
+ 1112  2026-08-20 16:38:41     "nninteractive-client",
+ 1113  2026-08-20 16:38:41     "nnunetv2",
+ 1114  2026-08-20 16:38:41     "torch",
+ 1115  2026-08-20 16:38:41     "torchvision",
+ 1116  2026-08-20 16:38:41     "torchaudio",
+ 1117  2026-08-20 16:38:41     "fastapi",
+ 1118  2026-08-20 16:38:41     "pydantic",
+ 1119  2026-08-20 16:38:41     "huggingface-hub",
+ 1120  2026-08-20 16:38:41     "transformers",
+ 1121  2026-08-20 16:38:41     "SimpleITK",
+ 1122  2026-08-20 16:38:41     "acvl-utils",
+ 1123  2026-08-20 16:38:41     "batchgenerators",
+ 1124  2026-08-20 16:38:41 ]
+ 1125  2026-08-20 16:38:41 for pkg in packages:
+ 1126  2026-08-20 16:38:41     try:
+ 1127  2026-08-20 16:38:41         print(f"{pkg:25s} {md.version(pkg)}")
+ 1128  2026-08-20 16:38:41     except md.PackageNotFoundError:
+ 1129  2026-08-20 16:38:41         print(f"{pkg:25s} NOT INSTALLED")
+ 1130  2026-08-20 16:38:41 PY
+ 1131  2026-07-02 15:47:38 pip install --upgrade itksnap_dls
+ 1132  2026-07-02 15:48:25 conda activate itksnap-dls
+ 1133  2026-08-20 16:38:41 import importlib.metadata as md
+ 1134  2026-08-20 16:38:41 packages = [
+ 1135  2026-08-20 16:38:41     "itksnap-dls",
+ 1136  2026-08-20 16:38:41     "nnInteractive",
+ 1137  2026-08-20 16:38:41     "nninteractive-client",
+ 1138  2026-08-20 16:38:41     "nnunetv2",
+ 1139  2026-08-20 16:38:41     "torch",
+ 1140  2026-08-20 16:38:41     "torchvision",
+ 1141  2026-08-20 16:38:41     "torchaudio",
+ 1142  2026-08-20 16:38:41     "fastapi",
+ 1143  2026-08-20 16:38:41     "pydantic",
+ 1144  2026-08-20 16:38:41     "huggingface-hub",
+ 1145  2026-08-20 16:38:41     "transformers",
+ 1146  2026-08-20 16:38:41     "SimpleITK",
+ 1147  2026-08-20 16:38:41     "acvl-utils",
+ 1148  2026-08-20 16:38:41     "batchgenerators",
+ 1149  2026-08-20 16:38:41 ]
+ 1150  2026-08-20 16:38:41 for pkg in packages:
+ 1151  2026-08-20 16:38:41     try:
+ 1152  2026-08-20 16:38:41         print(f"{pkg:25s} {md.version(pkg)}")
+ 1153  2026-08-20 16:38:41     except md.PackageNotFoundError:
+ 1154  2026-08-20 16:38:41         print(f"{pkg:25s} NOT INSTALLED")
+ 1155  2026-08-20 16:38:41 PY
+ 1156  2026-07-02 15:51:23 python -m itksnap_dls -k
+ 1157  2026-07-02 15:54:17 conda create -n itk-dls python=3.12
+ 1158  2026-07-02 16:09:34 conda activate itk-dls
+ 1159  2026-07-02 16:09:43 pip install itksnap-dls
+ 1160  2026-07-06 12:34:34 screen -r 
+ 1161  2026-07-06 12:34:51 python -m itksnap_dls
+ 1162  2026-07-06 12:34:39 screen -r 212821.pts-11.gpu4dl2 
+ 1163  2026-07-06 12:46:03 clean
+ 1164  2026-07-07 10:53:34 cd Jutta/
+ 1165  2026-07-07 10:53:43 cd T2_star/
+ 1166  2026-07-07 10:53:45 cd test/Articular\ Cartilage/depth/
+ 1167  2026-07-07 15:39:02 cd
+ 1168  2026-07-07 15:39:07 screen -r
+ 1169  2026-07-06 12:34:57 python -m itksnap_dls -k
+ 1170  2026-07-07 15:39:14 screen -r 21
+ 1171  2026-07-09 14:11:42 ping gpu4dl3
+ 1172  2026-07-09 14:11:50 ssh gpu4dl3
+ 1173  2026-07-10 12:51:50 htop
+ 1174  2026-07-10 12:52:43 nvidia-smi
+ 1175  2026-07-10 12:52:47 top
+ 1176  2026-07-10 12:55:37 ps -eo state,pid,comm,wchan:30 | grep '^D'
+ 1177  2026-07-10 12:55:46 ps aux | awk '$8=="D"'
+ 1178  2026-07-15 11:11:33 which python
+ 1179  2026-07-15 11:12:03 cd auto_seg_paper/
+ 1180  2026-07-15 11:16:20 nvidia-smi
+ 1181  2026-07-15 11:16:28 which -n 0.5 nvidia-smi
+ 1182  2026-07-15 14:00:08 cd auto_seg_paper/
+ 1183  2026-07-15 14:02:39 python main.py config_csv/segregated/segregated_5_update.csv segregated/echo5.csv
+ 1184  2026-07-15 14:02:47 htop
+ 1185  2026-07-15 14:05:44 top
+ 1186  2026-07-15 14:35:11 htop
+ 1187  2026-07-15 14:35:01 ssh gpu4dl3
+ 1188  2026-07-15 14:43:47 cd Jutta/Segmentation/
+ 1189  2026-07-15 14:56:22 cd nnUnet/
+ 1190  2026-07-15 14:56:48 history | grep pip.
+ 1191  2026-07-15 14:58:42 cd
+ 1192  2026-07-15 14:58:54 nnUNetv2_train
+ 1193  2026-07-15 14:58:56 cd -
+ 1194  2026-07-15 13:23:39 python main.py config_csv/segregated/segregated_3_update.csv segregated/echo3.csv
+ 1195  2026-07-15 15:14:16 history | grep inference.py
+ 1196  2026-07-15 15:14:41 history | grep inference.py 
+ 1197  2026-07-15 16:12:37 cd /home/naxos2-raid27/ahad0005/pyProjects/learning_1
+ 1198  2026-07-15 16:12:53 cp /home/naxos2-raid27/ahad0005/pyProjects/learning_1/ctrl_all.csv .
+ 1199  2026-07-15 16:14:22 cd
+ 1200  2026-07-15 16:14:32 cd Jutta/T2_star/
+ 1201  2026-07-15 16:14:46 cp ~/EllermannLab/scripts/ctrl_all.csv .
+ 1202  2026-07-15 16:15:35 cp ~/EllermannLab/scripts/*.csv .
+ 1203  2026-07-15 16:21:17 htop
+ 1204  2026-07-15 16:27:59 top
+ 1205  2026-07-15 11:16:35 watch -n 0.5 nvidia-smi
+ 1206  2026-07-16 11:06:37 ssh gpu2dl2
+ 1207  2026-07-16 11:06:44 ssh gpu4dl2
+ 1208  2026-07-16 11:15:40 ping gpu4dl2
+ 1209  2026-07-16 11:22:12 ssh gpu4dl2
+ 1210  2026-07-16 13:09:40 screen -r
+ 1211  2026-07-16 15:33:38 cd Jutta/
+ 1212  2026-07-16 15:33:50 history | grep jupyter
+ 1213  2026-07-16 15:34:10 cd Jutta/
+ 1214  2026-07-16 15:34:24 jupyter lab --no-browser --ip=127.0.0.1 --port=9020 --notebook-dir=Jutta/
+ 1215  2026-07-16 15:33:29 screen
+ 1216  2026-07-16 16:35:58 nvidia-smi
+ 1217  2026-07-16 16:36:04 htop
+ 1218  2026-07-17 16:14:38 top
+ 1219  2026-07-17 18:44:00 cd 
+ 1220  2026-07-17 18:47:05 ll /export
+ 1221  2026-07-17 18:47:27 ll /
+ 1222  2026-07-17 18:47:50 cd /export/
+ 1223  2026-07-17 18:47:57 c raid1/
+ 1224  2026-07-17 18:48:01 cd raid1/
+ 1225  2026-07-17 18:48:11 cd dicom.shimterra/
+ 1226  2026-07-17 18:50:16 findmnt -T /export/raid1/dicom.shimterra   -o TARGET,SOURCE,FSTYPE,OPTIONS
+ 1227  2026-07-17 18:47:16 ssh shimterra
+ 1228  2026-07-17 18:51:12 l home0
+ 1229  2026-07-17 18:51:16 l home0/admincrg/
+ 1230  2026-07-17 18:52:10 cd home
+ 1231  2026-07-17 18:52:30 findmnt /home -o TARGET,SOURCE,FSTYPE,OPTIONS
+ 1232  2026-07-17 18:53:56 cat /etc/auto.home
+ 1233  2026-07-17 18:54:23 cd shimterra-raid1
+ 1234  2026-07-17 18:54:30 cd dicom.shimterra/
+ 1235  2026-07-17 18:56:17 history | grep ln
+ 1236  2026-07-17 18:56:43 ln -s /home/shimterra-raid1/dicom.shimterra ~/shimTerra
+ 1237  2026-07-17 18:56:44 cd
+ 1238  2026-07-17 18:56:46 cd shimTerra
+ 1239  2026-07-20 11:14:07 cd
+ 1240  2026-07-21 13:55:46 vim .bashrc
+ 1241  2026-07-21 13:57:02 sthaousnhsauths,ah
+ 1242  2026-07-21 13:57:14 history 
+ 1243  2026-07-21 17:10:47 vim .bashrc
+ 1244  2026-07-21 17:11:45 cp .bashrc bashrc
+ 1245  2026-07-21 17:12:20 vim bashrc
+ 1246  2026-07-21 17:13:51 cat bashrc > text
+ 1247  2026-07-21 17:13:53 cat text 
+ 1248  2026-07-22 15:41:24 cd EllermannLab
+ 1249  2026-07-22 15:41:30 cd
+ 1250  2026-07-22 15:41:50 cd DICOMS
+ 1251  2026-07-22 15:42:03 l | grep TCO
+ 1252  2026-07-22 15:44:08 cd Jutta/
+ 1253  2026-07-22 15:44:09 cd 
+ 1254  2026-07-22 15:44:11 cd EllermannLab
+ 1255  2026-07-22 15:44:13 cd dataset/
+ 1256  2026-07-22 15:44:16 cd TCO/
+ 1257  2026-07-22 15:44:30 mkdir Patients_FU_2
+ 1258  2026-07-22 15:44:41 cd Patients_FU_2/
+ 1259  2026-07-22 15:46:54 history | grep rsync
+ 1260  2026-07-22 15:51:56 rsync -azh --prgress /home/naxos3-raid1/heday015/DICOMS/20260722-ST6178-TCO_024_3Y/ .
+ 1261  2026-07-22 15:52:05 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/20260722-ST6178-TCO_024_3Y/ .
+ 1262  2026-07-22 15:52:12 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/20260722-ST6178-TCO_024_3Y .
+ 1263  2026-07-22 15:55:27 cd 20260722-ST6178-TCO_024_3Y/
+ 1264  2026-07-22 15:55:55 l 20260722-ST6178-TCO_024_3Y
+ 1265  2026-07-22 16:53:36 cd 20260722-ST6178-TCO_024_3Y/
+ 1266  2026-07-24 16:18:20 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/20260722-ST6178-TCO_024_3Y/ .
+ 1267  2026-07-24 16:18:31 cd -
+ 1268  2026-07-24 16:18:34 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/20260722-ST6178-TCO_024_3Y/ .
+ 1269  2026-07-24 16:19:06 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/20260722-ST6178-TCO_024_3Y .
+ 1270  2026-07-17 16:15:18 htop
+ 1271  2026-07-17 10:34:23 watch -n 0.5 nvidia-smi
+ 1272  2026-07-29 09:31:52 touch havij
+ 1273  2026-07-29 09:32:29 ll | grep havij
+ 1274  2026-07-29 09:38:10 mkdir kalam
+ 1275  2026-07-29 09:38:17 ll | grep kalam
+ 1276  2026-07-29 09:48:21 cd EllermannLab
+ 1277  2026-07-29 09:48:27 cd dataset/
+ 1278  2026-07-29 09:48:33 mkdir eisa
+ 1279  2026-07-29 09:48:35 cd eisa/
+ 1280  2026-07-29 09:48:36 touch tt
+ 1281  2026-07-29 09:48:49 touch ttt
+ 1282  2026-07-29 09:49:05 rm -rf eisa/
+ 1283  2026-07-29 09:49:06 cd
+ 1284  2026-07-29 10:06:07 ls -al
+ 1285  2026-07-29 10:51:20 cat text 
+ 1286  2026-07-29 10:51:24 rm -rf text
+ 1287  2026-07-29 10:51:28 cat test_write 
+ 1288  2026-07-29 10:51:35 rm -rf test_write 
+ 1289  2026-07-29 10:51:41 touch tryii
+ 1290  2026-07-29 10:51:57 rm -rf tryii 
+ 1291  2026-07-29 11:49:14 rm havij
+ 1292  2026-07-29 11:49:27 ls havij
+ 1293  2026-07-29 11:49:32 ll | grep havij
+ 1294  2026-07-29 11:49:39 touch havij2
+ 1295  2026-07-29 11:49:42 ll | grep havij
+ 1296  2026-07-29 11:49:53 rm havij2
+ 1297  2026-07-29 14:12:02 touch test_
+ 1298  2026-07-29 14:12:10 rm test_
+ 1299  2026-07-30 16:00:20 ll | grep linkto7T 
+ 1300  2026-07-30 16:00:39 cd scratch
+ 1301  2026-07-30 16:00:45 rm scratch 
+ 1302  2026-07-30 16:00:54 cd linkto7T
+ 1303  2026-07-30 16:00:58 cat linkto7T 
+ 1304  2026-07-30 16:01:08 rm linkto7T 
+ 1305  2026-07-30 16:08:07 rm map_masked.mat 
+ 1306  2026-07-30 16:08:13 cat sib_matches.txt 
+ 1307  2026-07-30 16:11:13 cat bash.startup.log 
+ 1308  2026-07-30 16:11:16 rm bash.startup.log 
+ 1309  2026-07-30 16:11:24 touch t
+ 1310  2026-07-30 16:11:26 rm t
+ 1311  2026-08-03 11:54:05 screen -r
+ 1312  2026-08-05 11:59:09 history 
+ 1313  2026-08-05 11:59:45 history | grep cat
+ 1314  2026-08-05 11:59:54 cat /etc/auto.home
+ 1315  2026-08-05 12:00:00 cat /etc/auto.home | grep as
+ 1316  2026-08-05 12:00:06 cat /etc/auto.home | grep shim
+ 1317  2026-08-05 12:00:16 cd /home/shim7tas2-raid1
+ 1318  2026-08-05 12:00:43 cd /home/shim7tas2-dicom
+ 1319  2026-08-05 12:01:02 cat /etc/auto.home | grep shim
+ 1320  2026-08-05 12:01:42 cd /home/shim7tas2-raid1/dicom
+ 1321  2026-08-05 12:01:50 cd wahed
+ 1322  2026-08-05 12:02:06 ll | grep shim
+ 1323  2026-08-05 12:02:22 cd shimTerra
+ 1324  2026-08-05 12:02:34 cd
+ 1325  2026-08-05 12:02:57 cat /etc/auto.home | grep shim
+ 1326  2026-08-05 12:03:44 cd /home/shim7tas2-raid1/dicom.shim7tas2
+ 1327  2026-08-05 12:03:58 cd /home/shim7tas2-dicom/dicom.shim7tas2
+ 1328  2026-08-05 12:04:57 cd wahed
+ 1329  2026-08-05 12:05:02 cd Desktop/
+ 1330  2026-08-05 12:05:13 cd /home/shim7tas2-raid1/dicom.shim7tas2
+ 1331  2026-08-05 12:06:55 cd shim7Tas
+ 1332  2026-08-05 12:08:20 cd /home/shim7tas2-raid1/dicom.shim7tas2/heday015
+ 1333  2026-08-05 12:05:00 cd /home/shim7tas2-raid1/dicom.shim7tas2/
+ 1334  2026-08-05 12:05:16 cd shim7tas2-raid1
+ 1335  2026-08-07 10:35:00 cd DICOMS
+ 1336  2026-08-07 13:33:02 cd 2016-01/
+ 1337  2026-08-07 13:33:05 cd 2016-01/
+ 1338  2026-08-07 13:34:02 cd 20160122-ST001-OCD09L/
+ 1339  2026-08-07 13:36:04 cd EllermannLab
+ 1340  2026-08-07 13:36:10 cd dataset/
+ 1341  2026-08-07 13:36:14 cd J
+ 1342  2026-08-07 13:36:17 cd JOCD/
+ 1343  2026-08-07 13:36:25 cd clinical/
+ 1344  2026-08-07 13:36:33 mkdir 2016
+ 1345  2026-08-07 13:36:57 history | grep rsync
+ 1346  2026-08-07 13:37:30 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2016-01/2016-01/20160122-ST001-OCD09L 2016/
+ 1347  2026-08-07 13:45:42 cd 2016/
+ 1348  2026-08-07 14:12:15 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2016-01/2016-01/20160122-ST001-OCD09R .
+ 1349  2026-08-07 14:51:58 ll | grep -i ocd
+ 1350  2026-08-07 14:52:27 cd ../2016-03/
+ 1351  2026-08-07 14:52:29 ll | grep -i ocd
+ 1352  2026-08-07 14:53:26 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2016-03/20160301-ST001-OCD_10* .
+ 1353  2026-08-07 14:54:45 cd ../2016-09/
+ 1354  2026-08-07 14:54:57 ll | grep -i ocd
+ 1355  2026-08-07 14:55:25 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2016-09/20160926-ST001-OCD_11* .
+ 1356  2026-08-07 14:56:12 cd ../2016-10/
+ 1357  2026-08-07 14:56:13 ll | grep -i ocd
+ 1358  2026-08-07 14:56:54 cd ../2017-02/
+ 1359  2026-08-07 14:56:55 ll | grep -i ocd
+ 1360  2026-08-07 14:57:05 mkdir 2017
+ 1361  2026-08-07 14:57:08 cd 2017/
+ 1362  2026-08-07 14:57:45 cd 20170217-ST001-OCD_knee_left_02172017/
+ 1363  2026-08-07 14:58:51 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2017-02/20170217-ST001-OCD_knee_* .
+ 1364  2026-08-07 14:59:35 cd ../2017-05/
+ 1365  2026-08-07 14:59:39 ll | grep -i ocd
+ 1366  2026-08-07 15:01:58 find ./2017*/ -mindepth 1 -maxdepth 2 -type d -name '*OCD*'
+ 1367  2026-08-07 15:02:24 find ./2017*/ -mindepth 1 -maxdepth 1 -type d -name '*OCD*'
+ 1368  2026-08-07 15:02:31 find ./2017*/ -mindepth 1 -maxdepth 1 -type d -name '*OCD*'
+ 1369  2026-08-07 15:03:15 l 2017-04/20170417-ST001-OCD13R
+ 1370  2026-08-07 15:04:35 find "$(pwd)"/2017*/ -mindepth 1 -maxdepth 1 -type d -iname '*ocd*'
+ 1371  2026-08-07 15:06:24 vim copy_from_path
+ 1372  2026-08-07 15:07:04 while IFS= read -r dir; do     rsync -azh --progress -- "$dir" ./; done < copy_from_path
+ 1373  2026-08-07 15:09:31 vim copy_from_path
+ 1374  2026-08-07 15:10:19 l /home/naxos3-raid1/heday015/DICOMS/2017-04/20170417-ST001-OCD13R
+ 1375  2026-08-07 15:09:40 while IFS= read -r dir; do     rsync -azh --progress -- "$dir" ./; done < copy_from_path
+ 1376  2026-08-07 15:12:13 find "$(pwd)"/2018*/ -mindepth 1 -maxdepth 1 -type d -iname '*ocd*'
+ 1377  2026-08-07 15:13:37 find "$(pwd)"/2018-01/ -mindepth 1 -maxdepth 1 -type d -iname '*ocd*'
+ 1378  2026-08-07 15:13:42 find "$(pwd)"/2018-01/ -mindepth 1 -maxdepth 2 -type d -iname '*ocd*'
+ 1379  2026-08-07 15:13:49 find "$(pwd)"/2018-01/ -mindepth 2 -maxdepth 1 -type d -iname '*ocd*'
+ 1380  2026-08-07 15:13:56 find "$(pwd)"/2018-01/ -mindepth 1 -maxdepth 2 -type d -iname '*ocd*'
+ 1381  2026-08-07 15:14:00 find "$(pwd)"/2018-01/ -mindepth 1 -maxdepth 3 -type d -iname '*ocd*'
+ 1382  2026-08-07 15:14:11 find "$(pwd)"/2018*/ -mindepth 1 -maxdepth 2 -type d -iname '*ocd*'
+ 1383  2026-08-07 15:15:30 cd 2018-03/20180309/
+ 1384  2026-08-07 15:15:53 cd 20180301/
+ 1385  2026-08-07 15:16:08 cd .
+ 1386  2026-08-07 15:16:48 l 2018-04/20180402/
+ 1387  2026-08-07 15:18:25 l 2018-12/
+ 1388  2026-08-07 15:18:35 cd 2018-12/
+ 1389  2026-08-07 15:18:41 ll | grep -i ocd
+ 1390  2026-08-07 15:18:57 find "$(pwd)"/2018-12/ -mindepth 1 -maxdepth 2 -type d -iname '*ocd*'
+ 1391  2026-08-07 15:19:11 mkdir 2018
+ 1392  2026-08-07 15:19:15 cd 2018/
+ 1393  2026-08-07 15:19:29 while IFS= read -r dir; do     rsync -azh --progress -- "$dir" ./; done < copy_from_path
+ 1394  2026-08-07 15:19:35 vim copy_from_path
+ 1395  2026-08-07 15:19:50 while IFS= read -r dir; do     rsync -azh --progress -- "$dir" ./; done < copy_from_path
+ 1396  2026-08-07 15:21:28 find "$(pwd)"/2019*/ -mindepth 1 -maxdepth 2 -type d -iname '*ocd*'
+ 1397  2026-08-07 15:29:21 find "$(pwd)"/2019*/ -mindepth 1 -maxdepth 1 -type d -iname '*ocd*'
+ 1398  2026-08-07 15:29:53 find "$(pwd)"/2020*/ -mindepth 1 -maxdepth 1 -type d -iname '*ocd*'
+ 1399  2026-08-10 12:49:02 cd EllermannLab/dataset/JOCD/
+ 1400  2026-08-10 12:49:06 cd clinical/
+ 1401  2026-08-10 12:50:24 7z
+ 1402  2026-08-10 12:51:43 bsdtar
+ 1403  2026-08-10 12:52:06 tar -xf 'T2starFUP Data.tar.7z' 
+ 1404  2026-08-10 12:52:46 conda env --list
+ 1405  2026-08-10 12:52:53 cond a--list env
+ 1406  2026-08-10 12:52:59 conda --list env
+ 1407  2026-08-10 12:53:05 conda -list env
+ 1408  2026-08-10 12:53:18 history | grep conda | grep list
+ 1409  2026-08-10 12:53:23 conda env list
+ 1410  2026-08-10 12:53:38 conda activate test
+ 1411  2026-08-10 12:53:45 pip install py7zr
+ 1412  2026-08-10 12:55:15 py7zr x T2starFUP\ Data.tar.7z -o T2starFUP_Data
+ 1413  2026-08-10 12:56:02 py7zr --help
+ 1414  2026-08-10 12:56:18 py7zr x T2starFUP\ Data.tar.7z
+ 1415  2026-08-10 13:07:29 rm -rf T2starFUP\ Data.tar.7z 
+ 1416  2026-08-10 13:20:46 cd DICOMS
+ 1417  2026-08-10 13:44:16 find "$(pwd)"/2020*/ -mindepth 1 -maxdepth 1 -type d -iname '*ocd*'
+ 1418  2026-08-10 14:26:44 find "$(pwd)"/2019*/ -mindepth 1 -maxdepth 1 -type d -iname '*ocd*'
+ 1419  2026-08-10 14:29:04 history | grep rsync
+ 1420  2026-08-10 14:29:13 mkdir 2020
+ 1421  2026-08-10 14:29:18 cd 2020/
+ 1422  2026-08-10 14:30:00 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2020-10/20201016-ST001-OCD_KNEE_36* .
+ 1423  2026-08-10 15:05:28 find "$(pwd)"/2011*/ -mindepth 1 -maxdepth 1 -type d -iname '*ocd*'
+ 1424  2026-08-10 15:05:35 find "$(pwd)"/2021*/ -mindepth 1 -maxdepth 1 -type d -iname '*ocd*'
+ 1425  2026-08-10 15:05:49 mkdir 2021
+ 1426  2026-08-10 15:05:52 cd 2020/
+ 1427  2026-08-10 15:06:00 cd 2021
+ 1428  2026-08-10 15:06:21 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2021-04/20210419-ST001-OCD001 .
+ 1429  2026-08-10 15:13:50 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2021-12/20211209-ST001-OCD.KNEE.R .
+ 1430  2026-08-10 15:24:11 find "$(pwd)"/2022*/ -mindepth 1 -maxdepth 1 -type d -iname '*ocd*'
+ 1431  2026-08-10 15:27:53 l /home/naxos3-raid1/heday015/DICOMS/2022-02/20220202-ST001-FT_OCDE1_10WK_L
+ 1432  2026-08-10 15:34:12 find "$(pwd)"/2020-05*/ -mindepth 1 -maxdepth 1 -type d -iname '*knee*'
+ 1433  2026-08-10 15:34:18 cd ../2020
+ 1434  2026-08-10 15:35:05 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2020-05/20200526-ST001-LT_KNEE .
+ 1435  2026-08-10 15:35:34 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2020-05/20200513-ST001-RT_KNEE .
+ 1436  2026-08-10 15:35:50 find "$(pwd)"/2020/ -mindepth 1 -maxdepth 1 -type d -iname '*knee*'
+ 1437  2026-08-10 15:35:55 find "$(pwd)"/2020*/ -mindepth 1 -maxdepth 1 -type d -iname '*knee*'
+ 1438  2026-08-10 15:36:24 find "$(pwd)"/2020*/ -mindepth 1 -maxdepth 1 -type d -iname '*knee*' | grep 31
+ 1439  2026-08-10 15:37:35 l /home/naxos3-raid1/heday015/DICOMS/2020-03/20200331-ST001-Rt_Knee
+ 1440  2026-08-10 15:39:06 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2020-03/20200331-ST001-Rt_Knee .
+ 1441  2026-08-10 15:39:42 find "$(pwd)"/2020*/ -mindepth 1 -maxdepth 1 -type d -iname '*knee*' | grep 13
+ 1442  2026-08-10 15:40:05 l /home/naxos3-raid1/heday015/DICOMS/2020-05/20200513-ST001-RT_KNEE
+ 1443  2026-08-10 15:40:19 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2020-05/20200513-ST001-RT_KNEE .
+ 1444  2026-08-10 15:42:08 l 20200331-ST001-Rt_Knee/
+ 1445  2026-08-10 15:43:22 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2020-09/20200911-ST001-RT_KNEE_70 .
+ 1446  2026-08-10 15:44:00 l /home/naxos3-raid1/heday015/DICOMS/2020-12/20201215-ST001-LT_KNEE_53.3
+ 1447  2026-08-10 15:44:14 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2020-12/20201215-ST001-LT_KNEE_53.3 .
+ 1448  2026-08-10 15:44:39 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2020-12/20201215-ST001-RT_KNEE_53.3 .
+ 1449  2026-08-10 15:45:37 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2020-01/20200127-ST001-69.1_LT_KNEE .
+ 1450  2026-08-10 15:46:14 l /home/naxos3-raid1/heday015/DICOMS/2020-01/20200127-ST001-69.1_RT_KNEE.
+ 1451  2026-08-10 15:46:44 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2020-01/20200127-ST001-69.1_RT_KNEE. .
+ 1452  2026-08-10 15:47:22 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2020-02/20200227-ST001-51.2_RT_KNEE .
+ 1453  2026-08-10 15:48:01 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2020-02/20200227-ST001-51.2_LT_KNEE .
+ 1454  2026-08-10 15:48:46 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2020-03/20200303-ST001-64.2_LT_KNEE .
+ 1455  2026-08-10 15:49:19 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2020-03/20200303-ST001-64.2_RT_KNEE .
+ 1456  2026-08-10 15:50:08 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2020-09/20200911-ST001-LT_KNEE_70 .
+ 1457  2026-08-10 15:53:38 l /home/naxos3-raid1/heday015/DICOMS/2020-11/20201103-ST001-RIGHT_KNEE
+ 1458  2026-08-10 15:56:18 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2020-11/20201103-ST001-RIGHT_KNEE .
+ 1459  2026-08-10 15:57:05 l /home/naxos3-raid1/heday015/DICOMS/2020-10/20201023-ST001-LT_KNEE1
+ 1460  2026-08-10 15:57:17 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2020-10/20201023-ST001-LT_KNEE1 .
+ 1461  2026-08-10 15:57:54 l /home/naxos3-raid1/heday015/DICOMS/2020-11/20201112-ST001-RT_KNEE
+ 1462  2026-08-10 15:58:03 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2020-11/20201112-ST001-RT_KNEE .
+ 1463  2026-08-10 15:59:10 l /home/naxos3-raid1/heday015/DICOMS/2020-10/20201023-ST001-RT_KNEE2
+ 1464  2026-08-10 15:59:19 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2020-10/20201023-ST001-RT_KNEE2 .
+ 1465  2026-08-10 16:15:31 l /home/naxos3-raid1/heday015/DICOMS/2020-12/20201222-ST001-Lt_Knee
+ 1466  2026-08-10 16:15:42 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2020-12/20201222-ST001-Lt_Knee .
+ 1467  2026-08-10 16:16:30 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2020-12/20201222-ST001-Rt_Knee .
+ 1468  2026-08-10 16:17:00 l /home/naxos3-raid1/heday015/DICOMS/2020-12/20201229-ST001-LT_KNEE
+ 1469  2026-08-10 16:17:08 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2020-12/20201229-ST001-LT_KNEE .
+ 1470  2026-08-10 16:19:42 l /home/naxos3-raid1/heday015/DICOMS/2020-09/20200916-ST001-LT_KNEE1
+ 1471  2026-08-10 16:19:53 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2020-09/20200916-ST001-LT_KNEE1 .
+ 1472  2026-08-10 16:20:17 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2020-09/20200917-ST001-RT_KNEE1 .
+ 1473  2026-08-10 16:25:32 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2020-09/20200916-ST001-RT_KNEE1 .
+ 1474  2026-08-10 16:27:01 l /home/naxos3-raid1/heday015/DICOMS/2020-09/20200922-ST001-RT_KNEE
+ 1475  2026-08-10 16:27:09 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2020-09/20200922-ST001-RT_KNEE .
+ 1476  2026-08-10 16:28:46 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2020-09/20200916-ST001-RT_KNEE2 .
+ 1477  2026-08-11 09:52:26 l /home/naxos3-raid1/heday015/DICOMS/2020-02/20200220-ST001-KneeVol
+ 1478  2026-08-11 10:03:39 find "$(pwd)"/2021*/ -mindepth 1 -maxdepth 1 -type d -iname '*knee*' | grep 
+ 1479  2026-08-11 10:03:45 find "$(pwd)"/2021*/ -mindepth 1 -maxdepth 1 -type d -iname '*knee*'
+ 1480  2026-08-11 10:04:09 l /home/naxos3-raid1/heday015/DICOMS/2021-03/20210318-ST001-Zbyn_23Na-15ch_knee_Test1
+ 1481  2026-08-11 10:04:49 l /home/naxos3-raid1/heday015/DICOMS/2021-03/20210318-ST001-Zbyn_23Na-15ch_knee_Test1/MR-SE029-MM_DA_3D_RAD_ME8A_3.0iso
+ 1482  2026-08-11 12:44:09 cd ../../../..
+ 1483  2026-08-11 12:44:14 cd dataset/
+ 1484  2026-08-11 12:44:20 mkdir sodium
+ 1485  2026-08-11 12:44:22 cd sodium/
+ 1486  2026-08-11 12:45:04 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2021-03/20210318-ST001-Zbyn_23Na-15ch_knee_Test1 .
+ 1487  2026-08-11 12:45:37 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2021-03/20210330-ST001-Zbyn_23Na-15ch_knee_Test2 .
+ 1488  2026-08-11 12:47:36 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2021-06/20210609-ST001-Zbyn_23Na-15ch_knee_Test3 .
+ 1489  2026-08-11 12:48:29 cd 20210609-ST001-Zbyn_23Na-15ch_knee_Test3/
+ 1490  2026-08-11 12:48:32 hl
+ 1491  2026-08-11 12:49:53 cd ../..
+ 1492  2026-08-11 13:34:06 cd Jo
+ 1493  2026-08-11 13:34:08 cd JOCD/
+ 1494  2026-08-11 13:34:41 cd clinical/
+ 1495  2026-08-11 13:34:47 cd 2021
+ 1496  2026-08-11 13:35:24 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2021-10/20211019-ST001-RT_KNEE_65.3 .
+ 1497  2026-08-11 13:36:46 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2021-10/20211019-ST001-LT_KNEE_65.3 .
+ 1498  2026-08-11 13:38:29 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2021-06/20210622-ST001-RIGHT_KNEE_74.2 .
+ 1499  2026-08-11 13:39:11 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2021-06/20210622-ST001-LEFT_KNEE_74.2 .
+ 1500  2026-08-11 13:39:50 find "$(pwd)"/2022*/ -mindepth 1 -maxdepth 1 -type d -iname '*knee*'
+ 1501  2026-08-11 13:41:41 mkdir 2022
+ 1502  2026-08-11 13:41:44 cd 2022
+ 1503  2026-08-11 13:42:12 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2022-04/20220429-ST001-JOCDRTKNEE1 .
+ 1504  2026-08-11 13:45:56 l 20220429-ST001-JOCDRTKNEE1/
+ 1505  2026-08-11 14:12:02 find "$(pwd)"/2023*/ -mindepth 1 -maxdepth 1 -type d -iname '*knee*'
+ 1506  2026-08-11 14:12:28 find "$(pwd)"/2023*/ -mindepth 1 -maxdepth 1 -type d -iname '*ocd*'
+ 1507  2026-08-11 14:12:48 mkdir 2023
+ 1508  2026-08-11 14:12:51 cd 2023/
+ 1509  2026-08-11 14:13:11 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2023-05/20230525-ST001-RT_KNEE_OCD .
+ 1510  2026-08-11 14:26:50 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2023-12/20231205-ST002-LT_KNEE_OCD1 .
+ 1511  2026-08-11 14:32:38 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2023-05/20230524-ST001-JOCD_CTRL3T .
+ 1512  2026-08-11 14:36:42 cd {{
+ 1513  2026-08-11 14:36:51 mkdir 2024
+ 1514  2026-08-11 14:37:01 find "$(pwd)"/2024*/ -mindepth 1 -maxdepth 1 -type d -iname '*ocd*'
+ 1515  2026-08-11 14:44:20 cd 2024
+ 1516  2026-08-11 14:46:01 vim cop
+ 1517  2026-08-11 14:46:11 history | grep <
+ 1518  2026-08-11 14:46:15 history | grep '<'
+ 1519  2026-08-11 14:46:27 while IFS= read -r dir; do     rsync -azh --progress -- "$dir" ./; done < cop 
+ 1520  2026-08-11 15:09:23 cd 2025
+ 1521  2026-08-11 15:09:38 find "$(pwd)"/2025*/ -mindepth 1 -maxdepth 1 -type d -iname '*ocd*'
+ 1522  2026-08-11 15:12:19 vim cop
+ 1523  2026-08-11 15:12:54 cat cop 
+ 1524  2026-08-11 15:14:09 while IFS= read -r dir; do     rsync -azh --progress -- "$dir" ./; done < cop 
+ 1525  2026-08-11 15:48:35 find "$(pwd)"/2026*/ -mindepth 1 -maxdepth 1 -type d -iname '*ocd*'
+ 1526  2026-08-11 15:48:42 cd ../2026
+ 1527  2026-08-11 15:49:09 vim cop
+ 1528  2026-08-11 15:49:52 while IFS= read -r dir; do     rsync -azh --progress -- "$dir" ./; done < cop 
+ 1529  2026-08-11 15:57:44 l T2starFUP\ Data/
+ 1530  2026-08-11 15:58:17 l 2020
+ 1531  2026-08-11 16:00:15 find "$(pwd)"/2019*/ -mindepth 1 -maxdepth 1 -type d -iname '*knee*'
+ 1532  2026-08-11 16:01:06 l T2starFUP\ Data/ | grep 57
+ 1533  2026-08-11 16:01:16 l 2019
+ 1534  2026-08-11 16:01:24 l ll
+ 1535  2026-08-11 16:01:33 mkdir 2019
+ 1536  2026-08-11 16:01:42 cd 2019/
+ 1537  2026-08-11 16:02:05 rsync -azh --progress /home/naxos3-raid1/heday015/DICOMS/2019-05/20190530-ST001-57.1-LT._KNEE .
+ 1538  2026-08-11 16:05:37 l /home/naxos3-raid1/heday015/DICOMS/2019-02/20190226-ST001-LEFT_KNEE
+ 1539  2026-08-11 16:05:26 vim cop
+ 1540  2026-08-11 16:13:24 while IFS= read -r dir; do     rsync -azh --progress -- "$dir" ./; done < cop 
+ 1541  2026-08-11 16:15:51 find "$(pwd)"/2018*/ -mindepth 1 -maxdepth 1 -type d -iname '*knee*'
+ 1542  2026-08-11 16:16:05 find "$(pwd)"/2017*/ -mindepth 1 -maxdepth 1 -type d -iname '*knee*'
+ 1543  2026-08-13 11:05:05 cd Jutta/JOCD/
+ 1544  2026-08-13 11:05:08 cd figs/
+ 1545  2026-08-13 11:05:14 cd T2star/
+ 1546  2026-08-16 15:03:31 cd Jutta/JOCD/
+ 1547  2026-08-16 15:03:33 tree -L 2
+ 1548  2026-08-16 15:03:41 find . -maxdepth 2 -print
+ 1549  2026-08-16 15:04:36 vim ptree
+ 1550  2026-08-16 15:04:55 chmod +x ptree 
+ 1551  2026-08-16 15:05:01 ./ptree . 2
+ 1552  2026-08-16 15:05:17 cat ptree 
+ 1553  2026-08-16 15:05:29 ptree 2
+ 1554  2026-08-16 15:05:33 ./ptree 2
+ 1555  2026-08-16 15:06:32 vim ptree 
+ 1556  2026-08-16 15:06:47 ./ptree . 2
+ 1557  2026-08-16 15:06:53 cd JOCD/
+ 1558  2026-08-16 15:06:57 ../ptree . 2
+ 1559  2026-08-16 15:07:20 cd T2_star/
+ 1560  2026-08-16 15:07:23 ../ptree . 2
+ 1561  2026-08-16 15:07:30 ../ptree . 1
+ 1562  2026-08-16 15:08:14 vim ../ptree 
+ 1563  2026-08-16 15:08:27 ../ptree . 1
+ 1564  2026-08-16 15:08:32 ../ptree . -d  1
+ 1565  2026-08-16 15:08:41 ../ptree -d .  1
+ 1566  2026-08-16 15:08:59 ../ptree . 1
+ 1567  2026-08-16 15:09:03 ../ptree . 2
+ 1568  2026-08-16 15:09:11 ../ptree . 1
+ 1569  2026-08-16 15:09:23 vim ../ptree 
+ 1570  2026-08-16 15:09:39 ../ptree . 1
+ 1571  2026-08-16 15:09:45 ../ptree -d . 1
+ 1572  2026-08-16 15:10:14 rm -rf 26*
+ 1573  2026-08-16 15:12:11 cd cmpl
+ 1574  2026-08-16 15:12:23 ../ptree -d . 2
+ 1575  2026-08-16 15:12:28 ../ptree -d . 3
+ 1576  2026-08-16 15:12:33 cd..
+ 1577  2026-08-16 15:12:35 cd .
+ 1578  2026-08-16 15:12:40 cd Segmentation/
+ 1579  2026-08-16 15:14:49 screen -r
+ 1580  2026-08-16 15:17:07 #!/usr/bin/env bash
+ 1581  2026-08-16 15:17:07 dirs_only=false
+ 1582  2026-08-16 15:17:07 if [[ "$1" == "-d" ]]; then     dirs_only=true;     shift; fi
+ 1583  2026-08-16 15:17:07 ptree() {     local dir="${1:-.}";     local maxdepth="${2:-2}";      _ptree() {         local dir="$1";         local prefix="$2";         local depth="$3";          (( depth > maxdepth )) && return;          local items=();          if $dirs_only; then             for item in "$dir"/*/; do                 [[ -d "$item" ]] && items+=("${item%/}");             done;         else             for item in "$dir"/*; do                 [[ -e "$item" ]] && items+=("$item");             done;         fi;          local n=${#items[@]};         (( n == 0 )) && return;          for ((i=0; i<n; i++)); do             local item="${items[i]}";             local name="${item##*/}";              if (( i == n-1 )); then                 printf '%s└── %s\n' "$prefix" "$name";                  if [[ -d "$item" ]]; then                     _ptree "$item" "$prefix    " $((depth+1));                 fi;             else                 printf '%s├── %s\n' "$prefix" "$name";                  if [[ -d "$item" ]]; then                     _ptree "$item" "$prefix│   " $((depth+1));                 fi;             fi;         done;     };      echo "${dir%/}";     _ptree "$dir'
+ 1584  2026-08-16 15:22:32 screen -r 
+ 1585  2026-08-16 15:38:51 .wd
+ 1586  2026-08-18 21:18:53 ll EllermannLab
+ 1587  2026-08-18 21:22:12 screen -r 
+ 1588  2026-08-18 21:23:16 htop
+ 1589  2026-08-18 21:23:27 nvidia-smi 
+ 1590  2026-08-18 21:28:19 cd Jutta/Segmentation/auto_seg_paper/
+ 1591  2026-08-19 10:04:13 conda activate autoSeg
+ 1592  2026-08-19 10:04:48 pip install pydevd
+ 1593  2026-08-19 10:05:32 conda activate autoSeg
+ 1594  2026-08-19 10:05:34 pip install pydevd
+ 1595  2026-08-19 17:22:26 which python
+ 1596  2026-08-19 17:22:36 conda activate autoSeg
+ 1597  2026-08-19 17:22:40 which conda
+ 1598  2026-08-19 17:22:48 which python
+ 1599  2026-08-19 17:22:57 conad activate autoseg
+ 1600  2026-08-19 17:25:06 pip install pydicom
+ 1601  2026-08-19 17:26:38 pip list --outdated | grep pydicom
+ 1602  2026-08-19 17:37:27 pip list --outdated | grep highdicom
+ 1603  2026-08-19 17:38:57 pip install highdicom
+ 1604  2026-08-19 17:42:29 pip install numpy==1.26.3
+ 1605  2026-08-19 17:44:26 pip uninstall pyjpegls
+ 1606  2026-08-20 10:24:50 conda create -n dcm2niix_env -c conda-forge dcm2niix
+ 1607  2026-08-20 10:29:25 conda activate dcm2nixx_env
+ 1608  2026-08-20 10:29:34 dcm2nixx --version
+ 1609  2026-08-20 10:29:42 conda activate dcm2nixx_env
+ 1610  2026-08-20 10:29:50 conda activate dcm2niix_env
+ 1611  2026-08-20 10:29:58 dcm2niix --version
+ 1612  2026-08-20 10:30:08 pip install dcm2niix
+ 1613  2026-08-20 10:32:27 cd EllermannLab/dataset/JOCD/7T\ Data/
+ 1614  2026-08-20 10:32:32 cd Patients/
+ 1615  2026-08-20 10:32:39 cd 031/
+ 1616  2026-08-20 10:32:42 cd baseline_R/
+ 1617  2026-08-20 10:32:44 cd Dicoms/
+ 1618  2026-08-20 10:32:54 dc ..
+ 1619  2026-08-20 10:33:28 cd  052/baseline_R/Dicoms/
+ 1620  2026-08-20 10:33:42 cp 3D_GRE_T2star_Sag ~/Jutta/JOCD/
+ 1621  2026-08-20 10:33:47 cp -r 3D_GRE_T2star_Sag ~/Jutta/JOCD/
+ 1622  2026-08-20 10:37:45 history | grep rsync
+ 1623  2026-08-20 10:41:19 cd DICOMS
+ 1624  2026-08-20 10:42:04 history | grep 2026
+ 1625  2026-08-20 10:42:36 find "$(pwd)"/2026*/ -mindepth 1 -maxdepth 1 -type d -iname '*ocd*'
+ 1626  2026-08-20 10:43:09 find "$(pwd)"2026*/ -mindepth 1 -maxdepth 1 -type d -iname '*ocd*'
+ 1627  2026-08-20 10:38:07 rsync -azh --progress 3D_GRE_T2star_Sag ~/Jutta/JOCD/
+ 1628  2026-08-20 10:43:20 find "2026*/ -mindepth 1 -maxdepth 1 -type d -iname '*ocd*'
+ 1629  2026-08-20 10:43:31 find 2026*/ -mindepth 1 -maxdepth 1 -type d -iname '*ocd*'
+ 1630  2026-08-20 10:43:54 ll | grep -i ocd
+ 1631  2026-08-20 10:46:40 find "$(pwd)" -mindepth 1 -maxdepth 1 -type d -iname '2026*ocd*'
+ 1632  2026-08-20 10:47:34 find "$(pwd)" -mindepth 1 -maxdepth 1 -iname '2026*ocd*'
+ 1633  2026-08-20 10:48:52 find "$(pwd)" -maxdepth 1 -iname '2026*ocd*'
+ 1634  2026-08-20 10:49:00 find "$(pwd)" -iname '2026*ocd*'
+ 1635  2026-08-20 10:49:36 printf '%s\n' "$PWD"/2026* | grep -i ocd
+ 1636  2026-08-20 10:50:46 cd EllermannLab/dataset/JOCD/Clinical/2026/
+ 1637  2026-08-20 10:50:49 vim cop 
+ 1638  2026-08-20 10:51:30 history | grep rsync
+ 1639  2026-08-20 11:01:25 cd ~/Jutta/JOCD/
+ 1640  2026-08-20 11:04:05 dcm2niix -x i -m n -z y -b y -f "%p_%s_e%e" -o ./nift_out 3D_GRE_T2star_Sag
+ 1641  2026-08-20 11:04:12 mkdir nift_out
+ 1642  2026-08-20 11:04:13 dcm2niix -x i -m n -z y -b y -f "%p_%s_e%e" -o ./nift_out 3D_GRE_T2star_Sag
+ 1643  2026-08-20 10:51:38 while IFS= read -r dir; do     rsync -azh --progress -- "$dir" ./; done < cop
+ 1644  2026-08-20 11:27:04 dcm2niix -v 2 -x i -m n -z y -b y -f "%p_%s_e%e" -o ./nift_out 3D_GRE_T2star_Sag
+ 1645  2026-08-20 11:30:23 dcm2niix -x i -y y -m n -z y -b y -f "%p_%s_e%e" -o ./nift_out 3D_GRE_T2star_Sag
+ 1646  2026-08-20 11:32:09 dcm2niix -x i -y n -m n -z y -b y -f "%p_%s_e%e" -o ./nift_out 3D_GRE_T2star_Sag
+ 1647  2026-08-20 14:37:25 python --version
+ 1648  2026-08-20 15:41:39 history | grep conda
+ 1649  2026-08-20 15:47:25 cd 
+ 1650  2026-08-20 15:47:28 cd DICOMS
+ 1651  2026-08-20 15:47:54 history | grep find
+ 1652  2026-08-20 15:48:11 find "$(pwd)"/2023*/ -mindepth 1 -maxdepth 1 -type d -iname '*knee*'
+ 1653  2026-08-20 15:48:58 find "$(pwd)"/2023*/ -mindepth 1 -maxdepth 1 -type d -iname '*ocd*'
+ 1654  2026-08-20 15:42:08 conda create -n cmpl_test python=3.12
+ 1655  2026-08-20 15:50:08 cd ../cmpl
+ 1656  2026-08-20 15:50:24 which python
+ 1657  2026-08-20 15:50:27 python --version
+ 1658  2026-08-20 15:50:52 python -m pip install -e .
+ 1659  2026-08-20 16:06:22 python -c "import cmpl; print(cmpl.__version__)"
+ 1660  2026-08-20 16:38:41 import sys
+ 1661  2026-08-20 16:38:41 import cmpl
+ 1662  2026-08-20 16:38:41 packages = [
+ 1663  2026-08-20 16:38:41     "numpy",
+ 1664  2026-08-20 16:38:41     "scipy",
+ 1665  2026-08-20 16:38:41     "tqdm",
+ 1666  2026-08-20 16:38:41     "torch",
+ 1667  2026-08-20 16:38:41     "monai",
+ 1668  2026-08-20 16:38:41     "matplotlib",
+ 1669  2026-08-20 16:38:41     "pandas",
+ 1670  2026-08-20 16:38:41     "nibabel",
+ 1671  2026-08-20 16:38:41     "pydicom",
+ 1672  2026-08-20 16:38:41     "SimpleITK",
+ 1673  2026-08-20 16:38:41     "h5py",
+ 1674  2026-08-20 16:38:41     "dicom2nifti",
+ 1675  2026-08-20 16:38:41     "ipywidgets",
+ 1676  2026-08-20 16:38:41     "IPython",
+ 1677  2026-08-20 16:38:41 ]
+ 1678  2026-08-20 16:38:41 print("CMPL version:", cmpl.__version__)
+ 1679  2026-08-20 16:38:41 print()
+ 1680  2026-08-20 16:38:41 for pkg in packages:
+ 1681  2026-08-20 16:38:41     print(f"{pkg:15} {'LOADED' if pkg in sys.modules else 'not loaded'}")
+ 1682  2026-08-20 16:38:41 PY
+ 1683  2026-08-20 16:09:01 It is nicely done: numpy           not loaded
+ 1684  2026-08-20 16:09:01 scipy           not loaded
+ 1685  2026-08-20 16:09:01 tqdm            not loaded
+ 1686  2026-08-20 16:09:10 torch           not loaded
+ 1687  2026-08-20 16:09:11 monai           not loaded
+ 1688  2026-08-20 16:09:11 matplotlib      not loaded
+ 1689  2026-08-20 16:09:11 pandas          not loaded
+ 1690  2026-08-20 16:09:11 nibabel         not loaded
+ 1691  2026-08-20 16:09:11 pydicom         not loaded
+ 1692  2026-08-20 16:09:11 SimpleITK       not loaded
+ 1693  2026-08-20 16:09:11 h5py            not loaded
+ 1694  2026-08-20 16:09:12 dicom2nifti     not loaded
+ 1695  2026-08-20 16:09:12 ipywidgets      not loaded
+ 1696  2026-08-20 16:09:12 IPython         not loaded
+ 1697  2026-08-20 16:38:41 import sys
+ 1698  2026-08-20 16:38:41 import cmpl
+ 1699  2026-08-20 16:38:41 print("After import cmpl:")
+ 1700  2026-08-20 16:38:41 print("torch loaded:", "torch" in sys.modules)
+ 1701  2026-08-20 16:38:41 _ = cmpl.recon
+ 1702  2026-08-20 16:38:41 print("\nAfter cmpl.recon:")
+ 1703  2026-08-20 16:38:41 print("torch loaded:", "torch" in sys.modules)
+ 1704  2026-08-20 16:38:41 _ = cmpl.recon.grappa
+ 1705  2026-08-20 16:38:41 print("\nAfter cmpl.recon.grappa:")
+ 1706  2026-08-20 16:38:41 print("torch loaded:", "torch" in sys.modules)
+ 1707  2026-08-20 16:38:41 print("\nAvailable GRAPPA attributes:")
+ 1708  2026-08-20 16:38:41 print(dir(cmpl.recon.grappa))
+ 1709  2026-08-20 16:38:41 PY
+ 1710  2026-08-20 16:38:41 import sys
+ 1711  2026-08-20 16:38:41 import cmpl
+ 1712  2026-08-20 16:38:41 print("Initial:")
+ 1713  2026-08-20 16:38:41 print("torch loaded:", "torch" in sys.modules)
+ 1714  2026-08-20 16:38:41 _ = cmpl.recon.sense
+ 1715  2026-08-20 16:38:41 print("\nAfter cmpl.recon.sense:")
+ 1716  2026-08-20 16:38:41 print("torch loaded:", "torch" in sys.modules)
+ 1717  2026-08-20 16:38:41 print("sense attributes:", dir(cmpl.recon.sense))
+ 1718  2026-08-20 16:38:41 print("\nNow accessing cg...")
+ 1719  2026-08-20 16:38:41 try:
+ 1720  2026-08-20 16:38:41     _ = cmpl.recon.sense.cg
+ 1721  2026-08-20 16:38:41     print("cg loaded successfully")
+ 1722  2026-08-20 16:38:41 except Exception as e:
+ 1723  2026-08-20 16:38:41     print(type(e).__name__ + ":", e)
+ 1724  2026-08-20 16:38:41 PY
+ 1725  2026-08-20 16:10:46 python -m pip install -e ".[torch]"
+ 1726  2026-08-20 16:39:01 pip install torch
+ 1727  2026-08-20 16:43:09 l /tmp/torch_diag
+ 1728  2026-08-20 16:43:18 mkdir -p /tmp/torch_diag
+ 1729  2026-08-20 16:43:25 python -m pip download     --no-deps     torch==2.13.0     -d /tmp/torch_diag
+ 1730  2026-08-20 16:43:34 ls -lh "$WHEEL"
+ 1731  2026-08-20 16:43:48 /usr/bin/time -v     unzip -q "$WHEEL" -d /tmp/torch_extract_local     2>&1 | tee -a cmpl_torch_diag.txt
+ 1732  2026-08-20 16:44:18 /usr/bin/time -v     unzip -q "$WHEEL" -d .torch_extract_network     2>&1 | tee -a cmpl_torch_diag.txt
+ 1733  2026-08-20 16:55:19 top 
+ 1734  2026-08-20 16:55:54 ps fax | grep heday
+ 1735  2026-08-20 16:56:11 ps fax | grep hedaytop
+ 1736  2026-08-20 16:56:13 top
+ 1737  2026-08-20 16:56:26 kill -9 7792
+ 1738  2026-08-20 16:56:54 kill -9 1972839
+ 1739  2026-08-20 16:44:18 /usr/bin/time -v     unzip -q "$WHEEL" -d .torch_extract_network     2>&1 | tee -a cmpl_torch_diag.txt
+ 1740  2026-08-20 16:57:36 pip install torch
+ 1741  2026-08-20 16:58:39 /usr/bin/time -v     unzip -q "$WHEEL" -d /tmp/torch_extract_local     2>&1 | tee -a cmpl_torch_diag.txt
+ 1742  2026-08-20 16:55:11 ssh gpu4dl4
+ 1743  2026-08-20 17:07:36 rm -rf /tmp/torch_extract_local
+ 1744  2026-08-20 17:07:36 mkdir -p /tmp/torch_extract_local
+ 1745  2026-08-20 17:07:36 /usr/bin/time -v     unzip -q "$WHEEL" -d /tmp/torch_extract_local     2>&1 | tee -a cmpl_torch_diag.txt
+ 1746  2026-08-20 17:10:04 du -sh /tmp/torch_extract_local
+ 1747  2026-08-20 17:10:04 find /tmp/torch_extract_local -type f | wc -l
+ 1748  2026-08-20 17:10:46 rm -rf .torch_extract_network
+ 1749  2026-08-20 17:13:50 mkdir .torch_extract_network
+ 1750  2026-08-20 17:13:50 /usr/bin/time -v     unzip -q "$WHEEL" -d .torch_extract_network     2>&1 | tee -a cmpl_torch_diag.txt
+ 1751  2026-08-21 09:26:23 WHEEL=$(find /tmp/torch_diag -name 'torch-*.whl' | head -1)
+ 1752  2026-08-21 09:26:23 echo "$WHEEL"
+ 1753  2026-08-21 09:26:46 python - <<'PY'
+import zipfile
+from pathlib import Path
+
+wheel = next(Path("/tmp/torch_diag").glob("torch-*.whl"))
+
+for n in (100, 500, 1000, 5000):
+    output = Path(f"/tmp/torch_{n}.zip")
+
+    with zipfile.ZipFile(wheel, "r") as src, \
+         zipfile.ZipFile(output, "w", compression=zipfile.ZIP_STORED) as dst:
+
+        members = [m for m in src.infolist() if not m.is_dir()][:n]
+
+        for member in members:
+            dst.writestr(member, src.read(member))
+
+    print(f"{n:5d} files -> {output}")
+PY
+
+ 1754  2026-08-21 09:26:46 import zipfile
+ 1755  2026-08-21 09:26:50 from pathlib import Path
+ 1756  2026-08-21 09:26:50 wheel = next(Path("/tmp/torch_diag").glob("torch-*.whl"))
+ 1757  2026-08-21 09:26:50 for n in (100, 500, 1000, 5000):
+ 1758  2026-08-21 09:26:50     output = Path(f"/tmp/torch_{n}.zip")
+ 1759  2026-08-21 09:26:50     with zipfile.ZipFile(wheel, "r") as src, \
+ 1760  2026-08-21 09:26:50          zipfile.ZipFile(output, "w", compression=zipfile.ZIP_STORED) as dst:
+ 1761  2026-08-21 09:26:50         members = [m for m in src.infolist() if not m.is_dir()][:n]
+ 1762  2026-08-21 09:26:50         for member in members:
+ 1763  2026-08-21 09:26:50             dst.writestr(member, src.read(member))
+ 1764  2026-08-21 09:26:50     print(f"{n:5d} files -> {output}")
+ 1765  2026-08-21 09:26:50 PY
+ 1766  2026-08-21 09:26:57 for f in /tmp/torch_{100,500,1000,5000}.zip; do     echo "$(unzip -Z1 "$f" | wc -l) files  $(du -h "$f" | cut -f1)  $f"; done
+ 1767  2026-08-21 09:27:06 for n in 100 500 1000 5000; do     echo "===== LOCAL: $n files =====";      rm -rf "/tmp/extract_$n";     mkdir "/tmp/extract_$n";      /usr/bin/time -f 'files=%C
+elapsed=%e
+user=%U
+system=%S
+cpu=%P
+voluntary_switches=%w
+involuntary_switches=%c'         unzip -q "/tmp/torch_$n.zip" -d "/tmp/extract_$n";      echo; done
+ 1768  2026-08-21 09:27:06 elapsed=%e
+ 1769  2026-08-21 09:27:07 user=%U
+ 1770  2026-08-21 09:27:07 system=%S
+ 1771  2026-08-21 09:27:07 cpu=%P
+ 1772  2026-08-21 09:27:07 voluntary_switches=%w
+ 1773  2026-08-21 09:27:07 involuntary_switches=%c'         unzip -q "/tmp/torch_$n.zip" -d "/tmp/extract_$n";      echo; done
+ 1774  2026-08-21 09:27:25 for n in 100 500 1000 5000; do     echo "===== NETWORK: $n files =====";      rm -rf "./extract_$n";     mkdir "./extract_$n";      /usr/bin/time -f 'files=%C
+elapsed=%e
+user=%U
+system=%S
+cpu=%P
+voluntary_switches=%w
+involuntary_switches=%c'         unzip -q "/tmp/torch_$n.zip" -d "./extract_$n";      echo; done
+ 1775  2026-08-21 09:27:25 elapsed=%e
+ 1776  2026-08-21 09:34:26 user=%U
+ 1777  2026-08-21 09:34:26 system=%S
+ 1778  2026-08-21 09:34:26 cpu=%P
+ 1779  2026-08-21 09:34:26 voluntary_switches=%w
+ 1780  2026-08-21 09:34:26 involuntary_switches=%c'         unzip -q "/tmp/torch_$n.zip" -d "./extract_$n";      echo; done
+ 1781  2026-08-21 10:00:48 history | grep pip
+ 1782  2026-08-21 10:01:05 cd Jutta/cmpl
+ 1783  2026-08-21 10:01:07 python -m pip install -v -e ".[torch]"
+ 1784  2026-08-21 10:20:11 l tests/
+ 1785  2026-08-21 10:26:15 python -m pip install -e ".[viz]"
+ 1786  2026-08-21 13:20:57 python -m pytest tests/test_visualization.py -v
+ 1787  2026-08-21 13:21:16 python -m pytest tests/test_installation.py -v
+ 1788  2026-08-21 13:28:39 python -m pytest tests/test_reconstruction.py::test_grappa_1d_preserves_acquired_lines -v
+ 1789  2026-08-21 13:36:41 python - <<'PY'
+import h5py
+import nibabel
+import pydicom
+import SimpleITK
+import dicom2nifti
+
+print("h5py:", h5py.__version__)
+print("nibabel:", nibabel.__version__)
+print("pydicom:", pydicom.__version__)
+print("SimpleITK:", SimpleITK.Version_VersionString())
+print("dicom2nifti:", dicom2nifti.__version__)
+PY
+
+ 1790  2026-08-21 13:36:41 import h5py
+ 1791  2026-08-21 13:36:43 import nibabel
+ 1792  2026-08-21 13:36:43 import pydicom
+ 1793  2026-08-21 13:36:43 import SimpleITK
+ 1794  2026-08-21 13:36:43 import dicom2nifti
+ 1795  2026-08-21 13:36:43 print("h5py:", h5py.__version__)
+ 1796  2026-08-21 13:36:43 print("nibabel:", nibabel.__version__)
+ 1797  2026-08-21 13:36:43 print("pydicom:", pydicom.__version__)
+ 1798  2026-08-21 13:36:43 print("SimpleITK:", SimpleITK.Version_VersionString())
+ 1799  2026-08-21 13:36:43 print("dicom2nifti:", dicom2nifti.__version__)
+ 1800  2026-08-21 13:36:43 PY
+ 1801  2026-08-21 13:42:26 python -m pytest tests/test_io.py -v
+ 1802  2026-08-21 13:48:30 python -m pytest tests/test_data.py -v
+ 1803  2026-08-21 14:08:01 conda activate autoseg
+ 1804  2026-08-21 14:08:04 pip uninstall cmpl
+ 1805  2026-08-21 14:08:33 python -m pip install -e ".[all]"
+ 1806  2026-08-21 14:15:02 python -m pip install -e ".[dev]"
+ 1807  2026-08-21 14:17:06 python -m pytest tests/ -v
+ 1808  2026-08-21 14:17:40 ll | grep EllermanLab
+ 1809  2026-08-21 14:17:06 python -m pytest tests/ -v
+ 1810  2026-08-21 14:40:55 python
+ 1811  2026-08-21 14:20:34 ll | grep -i Dicom
+ 1812  2026-08-21 14:20:37 ll | grep EllermannLab
+ 1813  2026-08-21 14:20:39 ll | grep -i Dicom
+ 1814  2026-08-21 14:22:23 cd EllermannLab
+ 1815  2026-08-21 14:22:31 cd
+ 1816  2026-08-21 14:22:33 cd Jutta/
+ 1817  2026-08-21 14:22:51 ll | grep .sh
+ 1818  2026-08-21 14:23:05 ll Segmentation/ | grep .sh
+ 1819  2026-08-21 14:23:12 ll JOCD/ | grep .sh
+ 1820  2026-08-21 14:23:19 cat JOCD/create_structure.sh 
+ 1821  2026-08-21 14:23:48 cat T2_star/create_structure.sh 
+ 1822  2026-08-21 14:23:56 ll T2_star/ | grep .sh
+ 1823  2026-08-21 14:24:53 tree
+ 1824  2026-08-21 14:25:39 cp ptree ..
+ 1825  2026-08-21 14:25:42 cd ../EllermannLab
+ 1826  2026-08-21 14:25:51 ../ptree . 2
+ 1827  2026-08-21 14:26:08 ll ..
+ 1828  2026-08-21 14:26:17 ~/ptree . 2
+ 1829  2026-08-21 14:26:37 cd EllermannLab
+ 1830  2026-08-21 14:27:02 ~/ptree . 2
+ 1831  2026-08-21 14:27:18 ~/ptree . 1
+ 1832  2026-08-21 14:27:29 ~/ptree -d . 2
+ 1833  2026-08-21 14:27:36 ~/ptree -d . 1
+ 1834  2026-08-21 14:27:55 cd dataset/
+ 1835  2026-08-21 14:27:57 ~/ptree -d . 1
+ 1836  2026-08-21 14:28:21 cd JOCD/
+ 1837  2026-08-21 14:28:22 ~/ptree -d . 1
+ 1838  2026-08-21 14:28:44 l Clinical/
+ 1839  2026-08-21 14:32:23 cd TCO/
+ 1840  2026-08-21 14:32:39 cd Control/
+ 1841  2026-08-21 14:32:52 cd VOL-05-ST001-20220426/
+ 1842  2026-08-21 14:33:16 l Nifti/
+ 1843  2026-08-21 14:33:21 l Dicoms/
+ 1844  2026-08-21 14:33:34 l Segmentations/
+ 1845  2026-08-21 14:40:55 python
+ 1846  2026-08-21 14:51:12 history | grep twin
+ 1847  2026-08-21 14:47:20 cd EllermannLab
+ 1848  2026-08-21 14:47:40 powd
+ 1849  2026-08-21 14:51:12 history | grep twin
+ 1850  2026-08-21 14:51:29 conda activate cmpl_test
+ 1851  2026-08-21 14:51:35 twine
+ 1852  2026-08-21 14:52:41 l dist/
+ 1853  2026-08-21 14:52:51 python -m twine check dist/*
+ 1854  2026-08-21 14:53:35 cd dist/
+ 1855  2026-08-21 14:53:36 l
+ 1856  2026-08-21 14:53:42 rm -rf *
+ 1857  2026-08-21 14:53:44 cd ..
+ 1858  2026-08-21 14:53:56 python -m build
+ 1859  2026-08-21 14:54:11 python -m twine upload dist/*
+ 1860  2026-08-21 14:54:22 python -m --verbose twine upload dist/*
+ 1861  2026-08-21 14:54:32 history | grep twine
+ 1862  2026-08-21 14:54:42 history > hist

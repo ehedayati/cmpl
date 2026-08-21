@@ -72,7 +72,21 @@ def build_medical_data_frame(root_dir):
             print(f"No Segmentations directory found in {study_path}")
 
     # Create DataFrame
-    df = pd.DataFrame(data, columns=['Study', 'Path'])
-    df['Type'], df['Contrast'], df['Info'], df['Part'] = zip(*[(c + (None, None))[:4] for c in columns])
+    df = pd.DataFrame(data, columns=["Study", "Path"])
+
+    # If no valid entries were discovered, return an empty DataFrame
+    # with the expected schema instead of attempting to unpack an empty list.
+    if not columns:
+        df["Type"] = pd.Series(dtype="object")
+        df["Contrast"] = pd.Series(dtype="object")
+        df["Info"] = pd.Series(dtype="object")
+        df["Part"] = pd.Series(dtype="object")
+        return df
+
+    # Normalize metadata tuples to four fields:
+    # Type, Contrast, Info, Part.
+    df["Type"], df["Contrast"], df["Info"], df["Part"] = zip(
+        *[(c + (None, None))[:4] for c in columns]
+    )
 
     return df

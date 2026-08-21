@@ -8,7 +8,7 @@ import numpy as np
 from ipywidgets import widgets, HBox, VBox, interactive
 from IPython.display import display
 from matplotlib.colors import ListedColormap
-from cmpl.utilities.utils import resize_matrix
+from cmpl.utilities.numerical import resize_matrix
 from typing import List, Optional
 
 
@@ -169,17 +169,17 @@ def visualize_segmentation_slice(grayscale_image, segmentation_matrix, slice_num
 
 
 def plot_3D_mri(mri_image, slice_number=None, direction='sagittal', segmentation=None,
-                alpha=0.5, dpi=150, target_shape=None, m_cmap='gray', vmax=None, vmin=None):
+                alpha=0.5, dpi=150, target_shape=None, cmap='gray', vmax=None, vmin=None):
     backend = matplotlib.get_backend().lower()
     interactive_backend = ("ipympl" in backend) or ("qt" in backend)
 
     if not interactive_backend:
         print("Note: interactive backend not detected; falling back to static redraw mode. Use %matplotlib widget if available")
         return plot_3D_mri_inline(mri_image, slice_number, direction, segmentation,
-                                  alpha, dpi, target_shape, m_cmap, vmax, vmin)
+                                  alpha, dpi, target_shape, cmap, vmax, vmin)
     else:
         return plot_3D_mri_interactive(mri_image, slice_number, direction, segmentation,
-                                       alpha, dpi, target_shape, m_cmap, vmax, vmin)
+                                       alpha, dpi, target_shape, cmap, vmax, vmin)
 
 def plot_3D_mri_interactive(mri_image, slice_number=None, direction='sagittal', segmentation=None,
                 alpha=0.5, dpi=150, target_shape=None, m_cmap='gray', vmax=None, vmin=None):

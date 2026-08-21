@@ -3,11 +3,13 @@
 # Description: This file is developed at CMRR
 import nibabel as nib
 import numpy as np
+from numpy.typing import NDArray
 import os
 import pydicom
 import SimpleITK as sitk
 from collections import defaultdict
-
+from nibabel.nifti1 import Nifti1Image
+import warnings
 
 def save_scalar_map_like(ref_img: nib.Nifti1Image,
                          data_in: np.ndarray,
@@ -67,14 +69,32 @@ def save_scalar_map_like(ref_img: nib.Nifti1Image,
     nib.save(out_img, out_path)
     print(f"Saved {out_path} | shape={out_img.shape} dtype={out_img.get_data_dtype()}")
 
+NiftiImage = nib.Nifti1Image | nib.Nifti2Image
 
-def nifti_read(file_name, re_orient=False):
-    O = lambda MAT: np.rot90(MAT[:, ::-1, :], k=1, axes=(0, 1))[:,:,::-1]
-    nifti = nib.load(file_name)
+def nifti_read(
+    file_name,
+    re_orient: bool | None = None,
+) -> tuple[NiftiImage, NDArray]:
+
+    if re_orient is not None:
+        warnings.warn(
+            "'re_orient' is deprecated and will be removed in a future version.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
     if re_orient:
-        return nifti, O(nifti.get_fdata())
-    else:
-        return nifti, nifti.get_fdata()
+        raise ValueError(
+            "re_orient=True is no longer supported. "
+            "NIfTI orientation is preserved as stored."
+        )
+
+    nifti = nib.load(file_name)
+
+    if not isinstance(nifti, (nib.Nifti1Image, nib.Nifti2Image)):
+        raise TypeError(f"Expected NIfTI image, got {type(nifti).__name__}")
+
+    return nifti, np.asanyarray(nifti.dataobj)
 
 
 def compute_nifti_direction(image_orientation_patient):
@@ -245,9 +265,6 @@ def load_dicom_scan_from_dir(directory, reshape=True, verbose=False, with_spacin
     else:
         return image_data
 
-import nibabel as nib
-import numpy as np
-
 def update_nifti_data(file_path, new_data, output_path=None, dtype=np.float32):
     """
     Replace the data of a NIfTI file while preserving geometry and metadata safely.
@@ -339,18 +356,27 @@ def dicom_to_SimpleITK(dicom_directory):
     # Process each echo group to read as a separate 3D image.
     echo_images = {}
     for echo, files in echo_groups.items():
-        # Helper function to extract the InstanceNumber for sorting slices.
-        def get_instance_number(filename):
+        def get_slice_position(filename):
             r = sitk.ImageFileReader()
             r.SetFileName(filename)
             r.ReadImageInformation()
-            try:
-                return int(r.GetMetaData("0020|0013"))
-            except Exception:
-                return 0  # Fallback if InstanceNumber is missing
+
+            iop = np.array([
+                float(x)
+                for x in r.GetMetaData("0020|0037").split("\\")
+            ])
+
+            ipp = np.array([
+                float(x)
+                for x in r.GetMetaData("0020|0032").split("\\")
+            ])
+
+            slice_normal = np.cross(iop[:3], iop[3:])
+
+            return np.dot(ipp, slice_normal)
 
         # Sort file names by instance number.
-        files.sort(key=get_instance_number)
+        files.sort(key=get_slice_position)
 
         # Read metadata from the first DICOM file in the group.
         first_file = files[0]
@@ -399,10 +425,6 @@ def itk_to_nifti(itk_image, nifti_path, verbose=True):
         raise  # re-raise the exception for further handling if needed
 
     return os.path.abspath(nifti_path)
-
-
-from nibabel.nifti1 import Nifti1Image
-
 
 def itk_mask_correction(img: Nifti1Image, mask: Nifti1Image, tol: float = 1e-1, return_axis=False) -> np.ndarray:
     """

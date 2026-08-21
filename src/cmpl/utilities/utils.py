@@ -9,8 +9,9 @@ import zipfile
 import os
 import pydicom
 import torch as pt
-from scipy import ndimage
+# from scipy import ndimage
 
+from .numerical import resize_matrix
 
 def h5_to_nifti(input_file, output_file):
     """
@@ -349,27 +350,27 @@ def zero_pad(tensor, final_shape):
         return large_tensor.numpy()
 
 
-def resize_matrix(matrix, target_shape=(600, 600)):
-    """
-    Resize a 2D matrix to the target shape using interpolation.
-
-    Args:
-        matrix (numpy.ndarray): The input 2D matrix to be resized.
-        target_shape (tuple): The target shape (height, width) for the output matrix.
-
-    Returns:
-        numpy.ndarray: The resized matrix.
-    """
-    pt.set_grad_enabled(False)
-    if matrix.shape == target_shape:
-        return matrix  # No need to resize if it's already the target shape
-
-    # Compute the scaling factors
-    scale_factors = (target_shape[0] / matrix.shape[0], target_shape[1] / matrix.shape[1])
-
-    # Use scipy.ndimage.zoom for interpolation
-    resized_matrix = ndimage.zoom(matrix, scale_factors, order=1)
-    pt.set_grad_enabled(True)
-    if isinstance(matrix, pt.Tensor):
-        return pt.tensor(resized_matrix)
-    return resized_matrix
+# def resize_matrix(matrix, target_shape=(600, 600)):
+#     """
+#     Resize a 2D matrix to the target shape using interpolation.
+#
+#     Args:
+#         matrix (numpy.ndarray): The input 2D matrix to be resized.
+#         target_shape (tuple): The target shape (height, width) for the output matrix.
+#
+#     Returns:
+#         numpy.ndarray: The resized matrix.
+#     """
+#     pt.set_grad_enabled(False)
+#     if matrix.shape == target_shape:
+#         return matrix  # No need to resize if it's already the target shape
+#
+#     # Compute the scaling factors
+#     scale_factors = (target_shape[0] / matrix.shape[0], target_shape[1] / matrix.shape[1])
+#
+#     # Use scipy.ndimage.zoom for interpolation
+#     resized_matrix = ndimage.zoom(matrix, scale_factors, order=1)
+#     pt.set_grad_enabled(True)
+#     if isinstance(matrix, pt.Tensor):
+#         return pt.tensor(resized_matrix)
+#     return resized_matrix
