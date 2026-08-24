@@ -311,52 +311,123 @@ def update_nifti_data(file_path, new_data, output_path=None, dtype=np.float32):
     return new_nifti
 
 
-def dicom_to_SimpleITK(dicom_directory):
+def dicom_to_SimpleITK(dicom_directory, series_id=None):
     """
-    Reads a multi-echo DICOM series from a directory where all echoes are stored in one series
-    but with different EchoTime values (DICOM tag 0018|0081) on a per-slice basis, and returns
-    either a 3D image (if a single echo is found) or a merged 4D image (if multiple echoes are present).
+    Reads a multi-echo DICOM series from a directory where all echoes are
+    stored in one series but with different EchoTime values (DICOM tag
+    0018|0081) on a per-slice basis.
 
-    For each echo, the metadata from the first DICOM file in that echo group is copied to the
-    resulting 3D image wherever possible.
+    Returns either a 3D image if a single echo is found or a merged 4D image
+    if multiple echoes are present.
 
-    Parameters:
-        dicom_directory (str): Path to the directory containing the DICOM files.
+    For each echo, the metadata from the first DICOM file in that echo group
+    is copied to the resulting 3D image wherever possible.
 
-    Returns:
-        sitk.Image: A 4D image if multiple echoes are present, or a 3D image if only one echo is found.
+    Parameters
+    ----------
+    dicom_directory : str
+        Path to the directory containing the DICOM files.
 
-    Raises:
-        ValueError: If no DICOM series is found in the provided directory.
+    series_id : str, optional
+        DICOM SeriesInstanceUID to read. If not provided, the first available
+        series is used. If multiple series are found, a warning is issued.
+
+    Returns
+    -------
+    sitk.Image
+        A 4D image if multiple echoes are present, or a 3D image if only one
+        echo is found.
+
+    Raises
+    ------
+    ValueError
+        If no DICOM series is found, the requested series ID does not exist,
+        EchoTime contains an invalid value, or EchoTime metadata are
+        inconsistent across files.
     """
-    # Initialize the ImageSeriesReader and get the series IDs.
+
+    # Initialize the ImageSeriesReader and get the available series IDs.
     series_reader = sitk.ImageSeriesReader()
-    series_IDs = series_reader.GetGDCMSeriesIDs(dicom_directory)
-    if not series_IDs:
-        raise ValueError("No DICOM series found in the provided directory.")
+    series_ids = series_reader.GetGDCMSeriesIDs(dicom_directory)
 
-    # For this example, use the first available series ID.
-    series_id = series_IDs[0]
-    file_names = series_reader.GetGDCMSeriesFileNames(dicom_directory, series_id)
+    if not series_ids:
+        raise ValueError(
+            f"No DICOM series found in directory: {dicom_directory}"
+        )
+
+    # Use the first available series unless the user explicitly selects one.
+    if series_id is None:
+        if len(series_ids) > 1:
+            warnings.warn(
+                f"Found {len(series_ids)} DICOM series in {dicom_directory}. "
+                f"Using the first series: {series_ids[0]}",
+                UserWarning,
+                stacklevel=2,
+            )
+
+        series_id = series_ids[0]
+
+    elif series_id not in series_ids:
+        raise ValueError(
+            f"Series ID {series_id!r} was not found. "
+            f"Available series IDs: {list(series_ids)}"
+        )
+
+    file_names = series_reader.GetGDCMSeriesFileNames(
+        dicom_directory,
+        series_id,
+    )
 
     # Group file names by EchoTime.
     echo_groups = defaultdict(list)
+    missing_echo_time = []
+
     for f in file_names:
         file_reader = sitk.ImageFileReader()
         file_reader.SetFileName(f)
-        file_reader.ReadImageInformation()  # Read metadata only
-        try:
-            # Extract EchoTime as a float from the metadata (tag 0018|0081)
-            echo_time = float(file_reader.GetMetaData("0018|0081"))
-        except Exception:
-            # If EchoTime is missing, use None as the key.
-            echo_time = None
-        echo_groups[echo_time].append(f)
+        file_reader.ReadImageInformation()
 
-    # Process each echo group to read as a separate 3D image.
+        if file_reader.HasMetaDataKey("0018|0081"):
+            echo_value = file_reader.GetMetaData("0018|0081").strip()
+
+            if echo_value:
+                try:
+                    echo_time = float(echo_value)
+                except ValueError as exc:
+                    raise ValueError(
+                        f"Invalid EchoTime value {echo_value!r} "
+                        f"in DICOM file: {f}"
+                    ) from exc
+
+                echo_groups[echo_time].append(f)
+                continue
+
+        missing_echo_time.append(f)
+
+    # If EchoTime exists for some files but not others, the series is
+    # ambiguous and should not be assembled silently.
+    if missing_echo_time:
+        if echo_groups:
+            raise ValueError(
+                "Inconsistent EchoTime metadata: "
+                f"{len(missing_echo_time)} of {len(file_names)} DICOM files "
+                "are missing EchoTime (0018|0081)."
+            )
+
+        # If none of the files contain EchoTime, treat the series as a
+        # conventional single-volume acquisition.
+        echo_groups[None] = missing_echo_time
+
+    # Process each echo group as a separate 3D image.
     echo_images = {}
+
     for echo, files in echo_groups.items():
+
         def get_slice_position(filename):
+            """
+            Return the physical slice position projected onto the
+            DICOM slice normal.
+            """
             r = sitk.ImageFileReader()
             r.SetFileName(filename)
             r.ReadImageInformation()
@@ -375,19 +446,22 @@ def dicom_to_SimpleITK(dicom_directory):
 
             return np.dot(ipp, slice_normal)
 
-        # Sort file names by instance number.
+        # Sort slices by their physical position along the DICOM slice normal.
         files.sort(key=get_slice_position)
 
         # Read metadata from the first DICOM file in the group.
         first_file = files[0]
+
         meta_reader = sitk.ImageFileReader()
         meta_reader.SetFileName(first_file)
         meta_reader.ReadImageInformation()
+
         first_metadata = {}
+
         for key in meta_reader.GetMetaDataKeys():
             first_metadata[key] = meta_reader.GetMetaData(key)
 
-        # Read the 3D image from the sorted files.
+        # Read the sorted slices as a 3D image.
         series_reader.SetFileNames(files)
         image = series_reader.Execute()
 
@@ -397,13 +471,15 @@ def dicom_to_SimpleITK(dicom_directory):
 
         echo_images[echo] = image
 
-    # If only one echo exists, return that single 3D image.
+    # If only one echo exists, return the single 3D image.
     if len(echo_images) == 1:
         return list(echo_images.values())[0]
 
-    # If multiple echoes are present, merge them into a 4D image.
+    # If multiple echoes are present, order them by EchoTime and merge
+    # them into a 4D image.
     sorted_keys = sorted(echo_images.keys())
     image_list = [echo_images[key] for key in sorted_keys]
+
     merged_image = sitk.JoinSeries(image_list)
 
     return merged_image
