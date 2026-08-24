@@ -10,6 +10,7 @@ import SimpleITK as sitk
 from collections import defaultdict
 from nibabel.nifti1 import Nifti1Image
 import warnings
+from cmpl.dicom.geometry import get_slice_position
 
 def save_scalar_map_like(ref_img: nib.Nifti1Image,
                          data_in: np.ndarray,
@@ -311,7 +312,7 @@ def update_nifti_data(file_path, new_data, output_path=None, dtype=np.float32):
     return new_nifti
 
 
-def dicom_to_SimpleITK(dicom_directory, series_id=None):
+def _dicom_to_simpleitk(dicom_directory, series_id=None):
     """
     Reads a multi-echo DICOM series from a directory where all echoes are
     stored in one series but with different EchoTime values (DICOM tag
@@ -423,28 +424,28 @@ def dicom_to_SimpleITK(dicom_directory, series_id=None):
 
     for echo, files in echo_groups.items():
 
-        def get_slice_position(filename):
-            """
-            Return the physical slice position projected onto the
-            DICOM slice normal.
-            """
-            r = sitk.ImageFileReader()
-            r.SetFileName(filename)
-            r.ReadImageInformation()
-
-            iop = np.array([
-                float(x)
-                for x in r.GetMetaData("0020|0037").split("\\")
-            ])
-
-            ipp = np.array([
-                float(x)
-                for x in r.GetMetaData("0020|0032").split("\\")
-            ])
-
-            slice_normal = np.cross(iop[:3], iop[3:])
-
-            return np.dot(ipp, slice_normal)
+        # def get_slice_position(filename):
+        #     """
+        #     Return the physical slice position projected onto the
+        #     DICOM slice normal.
+        #     """
+        #     r = sitk.ImageFileReader()
+        #     r.SetFileName(filename)
+        #     r.ReadImageInformation()
+        #
+        #     iop = np.array([
+        #         float(x)
+        #         for x in r.GetMetaData("0020|0037").split("\\")
+        #     ])
+        #
+        #     ipp = np.array([
+        #         float(x)
+        #         for x in r.GetMetaData("0020|0032").split("\\")
+        #     ])
+        #
+        #     slice_normal = np.cross(iop[:3], iop[3:])
+        #
+        #     return np.dot(ipp, slice_normal)
 
         # Sort slices by their physical position along the DICOM slice normal.
         files.sort(key=get_slice_position)
@@ -484,6 +485,31 @@ def dicom_to_SimpleITK(dicom_directory, series_id=None):
 
     return merged_image
 
+def dicom_to_SimpleITK(
+    dicom_directory,
+    series_id=None,
+):
+    """
+    Read a DICOM series into a SimpleITK image.
+
+    Parameters
+    ----------
+    dicom_directory : str or Path
+        Directory containing the DICOM series.
+
+    series_id : str, optional
+        SeriesInstanceUID to read. If omitted, the first available
+        series is used.
+
+    Returns
+    -------
+    sitk.Image
+        A 3D image for a single echo or a 4D image for multiple echoes.
+    """
+    return _dicom_to_simpleitk(
+        dicom_directory,
+        series_id=series_id,
+    )
 
 def itk_to_nifti(itk_image, nifti_path, verbose=True):
     # Check if the provided path ends with valid NIfTI extensions.

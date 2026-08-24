@@ -36,8 +36,9 @@ def test_cmpl_import_is_lightweight():
         """
         import sys
         import cmpl
+        from importlib.metadata import version
 
-        assert cmpl.__version__ == "0.2.0"
+        assert cmpl.__version__ == version("cmpl")
 
         optional_modules = [
             "torch",
@@ -262,6 +263,35 @@ def test_data_does_not_load_unrelated_dependencies():
 
         assert not loaded, (
             "Data utilities loaded unrelated dependencies: "
+            f"{loaded}"
+        )
+        """
+    )
+
+    assert_success(result)
+
+def test_dicom_namespace_is_lazy():
+    result = run_isolated(
+        """
+        import sys
+        import cmpl
+
+        _ = cmpl.dicom
+
+        forbidden = [
+            "nibabel",
+            "pydicom",
+            "SimpleITK",
+        ]
+
+        loaded = [
+            name
+            for name in forbidden
+            if name in sys.modules
+        ]
+
+        assert not loaded, (
+            "DICOM namespace loaded heavy dependencies: "
             f"{loaded}"
         )
         """
