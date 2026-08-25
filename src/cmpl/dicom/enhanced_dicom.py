@@ -13,6 +13,9 @@ __all__ = [
     "get_spacing_between_slices",
     "voxel_sizes_detailed",
     "get_unique_echo_times",
+    "is_enhanced_dicom",
+    "get_enhanced_frame_info",
+    "extract_enhanced_acquisition_metadata",
 ]
 
 
@@ -225,3 +228,205 @@ def find_pixel_measures(ds):
                 return (f"per-frame[{i}]", item)
 
     return (None, None)
+
+def is_enhanced_dicom(path):
+    """
+    Determine whether a DICOM file is a multi-frame Enhanced DICOM object.
+
+    Parameters
+    ----------
+    path : str or Path
+        Path to a DICOM file.
+
+    Returns
+    -------
+    bool
+        True if the file contains multiple frames with per-frame
+        functional groups.
+    """
+
+    ds = pydicom.dcmread(
+        str(path),
+        stop_before_pixels=True,
+    )
+
+    return (
+        hasattr(
+            ds,
+            "PerFrameFunctionalGroupsSequence",
+        )
+        and int(
+            getattr(ds, "NumberOfFrames", 1)
+        ) > 1
+    )
+
+def get_enhanced_frame_info(path):
+    """
+    Extract frame-level geometry and EchoTime from an Enhanced DICOM file.
+    """
+
+    ds = pydicom.dcmread(
+        str(path),
+        stop_before_pixels=True,
+    )
+
+    shared = (
+        ds.SharedFunctionalGroupsSequence[0]
+        if hasattr(ds, "SharedFunctionalGroupsSequence")
+        else None
+    )
+
+    frames = []
+
+    for index, fg in enumerate(
+        ds.PerFrameFunctionalGroupsSequence
+    ):
+        # EchoTime
+        echo_time = None
+
+        if hasattr(fg, "MREchoSequence"):
+            echo_time = round(
+                float(
+                    fg.MREchoSequence[
+                        0
+                    ].EffectiveEchoTime
+                ),
+                6,
+            )
+
+        # ImagePositionPatient
+        position = None
+
+        if hasattr(fg, "PlanePositionSequence"):
+            position = [
+                float(x)
+                for x in fg.PlanePositionSequence[
+                    0
+                ].ImagePositionPatient
+            ]
+
+        # ImageOrientationPatient
+        orientation = None
+
+        if hasattr(fg, "PlaneOrientationSequence"):
+            orientation = [
+                float(x)
+                for x in fg.PlaneOrientationSequence[
+                    0
+                ].ImageOrientationPatient
+            ]
+
+        elif (
+            shared is not None
+            and hasattr(
+                shared,
+                "PlaneOrientationSequence",
+            )
+        ):
+            orientation = [
+                float(x)
+                for x in shared.PlaneOrientationSequence[
+                    0
+                ].ImageOrientationPatient
+            ]
+
+        frames.append(
+            {
+                "FrameIndex": index,
+                "EchoTime": echo_time,
+                "ImagePositionPatient": position,
+                "ImageOrientationPatient": orientation,
+            }
+        )
+
+    return frames
+
+def _find_first_tag_value(ds, tag):
+    """
+    Find the first occurrence of a DICOM tag anywhere in a dataset,
+    including nested sequences.
+    """
+
+    target = Tag(tag)
+
+    for element in ds.iterall():
+        if element.tag == target:
+            value = element.value
+
+            if value is None:
+                continue
+
+            return value
+
+    return None
+
+
+def extract_enhanced_acquisition_metadata(ds):
+    """
+    Extract selected acquisition metadata from an Enhanced DICOM dataset.
+
+    Nested functional-group sequences are searched recursively.
+    Patient-identifying fields are intentionally excluded.
+
+    DICOM timing values are preserved in milliseconds.
+    """
+
+    metadata = {}
+
+    string_tags = {
+        "Manufacturer": (0x0008, 0x0070),
+        "ManufacturersModelName": (0x0008, 0x1090),
+        "SeriesDescription": (0x0008, 0x103E),
+        "ProtocolName": (0x0018, 0x1030),
+        "ScanningSequence": (0x0018, 0x0020),
+        "SequenceVariant": (0x0018, 0x0021),
+        "ScanOptions": (0x0018, 0x0022),
+        "MRAcquisitionType": (0x0018, 0x0023),
+        "SoftwareVersions": (0x0018, 0x1020),
+        "ReceiveCoilName": (0x0018, 0x1250),
+        "TransmitCoilName": (0x0018, 0x1251),
+    }
+
+    numeric_tags = {
+        "FlipAngle": (0x0018, 0x1314),
+        "MagneticFieldStrength": (0x0018, 0x0087),
+        "ImagingFrequency": (0x0018, 0x0084),
+        "NumberOfAverages": (0x0018, 0x0083),
+        "EchoTrainLength": (0x0018, 0x0091),
+        "PixelBandwidth": (0x0018, 0x0095),
+        "RepetitionTime": (0x0018, 0x0080),
+        "InversionTime": (0x0018, 0x0082),
+    }
+
+    for name, tag in string_tags.items():
+        value = _find_first_tag_value(
+            ds,
+            tag,
+        )
+
+        if value is None:
+            continue
+
+        value = str(value).strip()
+
+        if value:
+            metadata[name] = value
+
+    for name, tag in numeric_tags.items():
+        value = _find_first_tag_value(
+            ds,
+            tag,
+        )
+
+        if value is None:
+            continue
+
+        try:
+            metadata[name] = round(
+                float(value),
+                6,
+            )
+        except (TypeError, ValueError):
+            continue
+
+    return metadata

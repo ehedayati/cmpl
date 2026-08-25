@@ -13,13 +13,14 @@ CMPL is organized as a modular library: the base installation stays lightweight,
 
 ## Highlights
 
-- Direct, geometry-aware DICOM-series to NIfTI conversion with JSON metadata sidecars
+- Direct, geometry-aware conventional and Enhanced DICOM to NIfTI conversion with JSON metadata sidecars
 - Multi-echo DICOM support, including 4D NIfTI output ordered by echo time
+- Packaged `cmpl-dicom-to-nifti` command-line converter
 - DICOM geometry and acquisition-metadata utilities
 - Parallel MRI reconstruction with 1D/2D GRAPPA and conjugate-gradient SENSE
 - Quantitative MRI tools for T2* fitting, signal reconstruction, and fitting-error analysis
 - MRI visualization utilities for 2D comparisons and 3D volume browsing
-- DICOM, enhanced-DICOM, NIfTI, HDF5, and SimpleITK utilities
+- Conventional and Enhanced DICOM, NIfTI, HDF5, and SimpleITK utilities
 - Lightweight numerical utilities shared across CMPL
 - Optional pandas-based indexing for CMPL-style medical-data directory structures
 - Lazy package imports so `import cmpl` does not eagerly load large optional dependencies
@@ -102,12 +103,12 @@ python -m pip install "cmpl[io]"
 
 ### Convert a DICOM series directly to NIfTI
 
-CMPL 0.2.2 includes direct DICOM-series to NIfTI conversion. The converter physically orders the DICOM slices, supports single- and multi-echo acquisitions, writes the NIfTI image, and creates a matching JSON sidecar containing acquisition metadata and source geometry.
+CMPL includes direct DICOM-series to NIfTI conversion for both conventional and Enhanced DICOM. The converter detects the DICOM representation automatically, preserves spatial geometry, supports single- and multi-echo acquisitions, writes the NIfTI image, and creates a matching JSON sidecar containing acquisition metadata and source geometry.
 
 ```python
-from cmpl.utilities.io import dicom_to_nifti
+import cmpl
 
-metadata = dicom_to_nifti(
+metadata = cmpl.io.dicom_to_nifti(
     "/path/to/dicom_series",
     "output.nii.gz",
 )
@@ -136,12 +137,55 @@ The returned value is the same metadata dictionary written to the JSON sidecar.
 If a directory contains multiple DICOM series, a specific `SeriesInstanceUID` can be selected:
 
 ```python
-metadata = dicom_to_nifti(
+metadata = cmpl.io.dicom_to_nifti(
     "/path/to/dicom_directory",
     "output.nii.gz",
     series_id="1.2.840...",
 )
 ```
+
+### Command-line DICOM conversion
+
+Installing the I/O extra also installs the `cmpl-dicom-to-nifti` command:
+
+```bash
+python -m pip install "cmpl[io]"
+```
+
+Convert a DICOM series with automatic conventional/Enhanced-DICOM detection:
+
+```bash
+cmpl-dicom-to-nifti /path/to/dicom_series
+```
+
+The same CLI can also be invoked as a Python module:
+
+```bash
+python -m cmpl.cli.dicom_to_nifti /path/to/dicom_series
+```
+
+If the output path is omitted, CMPL writes the NIfTI image and JSON sidecar to the current directory using the DICOM directory name:
+
+```text
+./<series_directory_name>.nii.gz
+./<series_directory_name>.json
+```
+
+An explicit output path can also be supplied:
+
+```bash
+cmpl-dicom-to-nifti \
+    /path/to/dicom_series \
+    /path/to/output.nii.gz
+```
+
+Progress output is enabled by default. Disable it with:
+
+```bash
+cmpl-dicom-to-nifti /path/to/dicom_series --no-verbose
+```
+
+The same CLI handles conventional single-frame DICOM series and Enhanced multi-frame DICOM series. For multi-echo data, echo volumes are ordered by EchoTime and written as a 4D NIfTI image.
 
 ### Read a NIfTI file
 
@@ -205,7 +249,7 @@ output_path = itk_to_nifti(
 
 ### DICOM geometry and metadata helpers
 
-CMPL 0.2.2 separates DICOM geometry and acquisition-metadata handling into dedicated modules under `cmpl.dicom`.
+CMPL separates DICOM geometry and acquisition-metadata handling into dedicated modules under `cmpl.dicom`.
 
 ```python
 from cmpl.dicom import (
@@ -503,7 +547,7 @@ The test suite includes:
 - GRAPPA and SENSE reconstruction tests
 - visualization smoke tests
 - synthetic NIfTI, DICOM, and SimpleITK I/O tests
-- multi-echo DICOM-to-NIfTI conversion and JSON-sidecar tests
+- conventional and Enhanced multi-echo DICOM-to-NIfTI conversion and JSON-sidecar tests
 - DICOM geometry and metadata tests
 - data-indexing tests
 
@@ -519,6 +563,8 @@ python -m twine check dist/*
 ```text
 src/cmpl/
 ├── _version.py
+├── cli/
+│   └── dicom_to_nifti.py
 ├── dicom/
 │   ├── enhanced_dicom.py
 │   ├── geometry.py

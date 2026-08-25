@@ -21,6 +21,13 @@ from cmpl.dicom.metadata import (
     extract_acquisition_metadata,
 )
 
+from cmpl.dicom.enhanced_dicom import (
+    extract_enhanced_acquisition_metadata,
+    get_enhanced_frame_info,
+    is_enhanced_dicom,
+    voxel_sizes_detailed,
+)
+
 def save_scalar_map_like(ref_img: nib.Nifti1Image,
                          data_in: np.ndarray,
                          out_path: str,
@@ -678,6 +685,597 @@ def _dicom_to_simpleitk(
 
     return output_image, metadata
 
+def _enhanced_dicom_to_simpleitk(
+    dicom_directory,
+    series_id=None,
+    collect_metadata=False,
+):
+    """
+    Read an Enhanced DICOM series into a SimpleITK image.
+
+    Each Enhanced DICOM file may represent one 3D echo volume.
+    Echo volumes sharing the same SeriesInstanceUID are sorted by
+    EchoTime and combined into a 4D image.
+
+    Parameters
+    ----------
+    dicom_directory : str or Path
+        Directory containing the Enhanced DICOM files.
+
+    series_id : str, optional
+        SeriesInstanceUID to read. If omitted, the first available
+        Enhanced DICOM series is used.
+
+    collect_metadata : bool, default=False
+        If True, also return selected acquisition metadata and
+        source frame geometry.
+
+    Returns
+    -------
+    sitk.Image
+        Returned when collect_metadata=False.
+
+    tuple[sitk.Image, dict]
+        Returned when collect_metadata=True.
+    """
+
+    dicom_directory = str(
+        dicom_directory
+    )
+
+    # ------------------------------------------------------------
+    # Discover Enhanced DICOM files by SeriesInstanceUID.
+    # ------------------------------------------------------------
+
+    series_files = defaultdict(list)
+
+    for filename in os.listdir(
+        dicom_directory
+    ):
+        path = os.path.join(
+            dicom_directory,
+            filename,
+        )
+
+        if not os.path.isfile(path):
+            continue
+
+        try:
+            if not is_enhanced_dicom(path):
+                continue
+
+            ds = pydicom.dcmread(
+                path,
+                stop_before_pixels=True,
+            )
+
+        except Exception:
+            continue
+
+        current_series_id = getattr(
+            ds,
+            "SeriesInstanceUID",
+            None,
+        )
+
+        if current_series_id is None:
+            continue
+
+        series_files[
+            str(current_series_id)
+        ].append(path)
+
+    if not series_files:
+        raise ValueError(
+            f"No Enhanced DICOM series found in directory: "
+            f"{dicom_directory}"
+        )
+
+    available_series_ids = list(
+        series_files.keys()
+    )
+
+    # ------------------------------------------------------------
+    # Select series.
+    # ------------------------------------------------------------
+
+    if series_id is None:
+        if len(available_series_ids) > 1:
+            warnings.warn(
+                f"Found {len(available_series_ids)} Enhanced "
+                f"DICOM series in {dicom_directory}. "
+                f"Using the first series: "
+                f"{available_series_ids[0]}",
+                UserWarning,
+                stacklevel=2,
+            )
+
+        series_id = (
+            available_series_ids[0]
+        )
+
+    elif series_id not in series_files:
+        raise ValueError(
+            f"Series ID {series_id!r} was not found. "
+            f"Available Enhanced DICOM series IDs: "
+            f"{available_series_ids}"
+        )
+
+    file_names = series_files[
+        series_id
+    ]
+
+    # ------------------------------------------------------------
+    # Identify the EchoTime represented by each Enhanced file.
+    # ------------------------------------------------------------
+
+    echo_files = {}
+    frame_info_by_echo = {}
+
+    acquisition_metadata = None
+    geometry_by_echo = {}
+
+    for path in file_names:
+        frames = get_enhanced_frame_info(
+            path
+        )
+
+        echo_times = {
+            frame["EchoTime"]
+            for frame in frames
+            if frame["EchoTime"] is not None
+        }
+
+        if not echo_times:
+            echo_time = None
+
+        elif len(echo_times) == 1:
+            echo_time = round(
+                float(
+                    next(iter(echo_times))
+                ),
+                6,
+            )
+
+        else:
+            raise ValueError(
+                "Enhanced DICOM file contains multiple "
+                "EchoTime values. This conversion path "
+                "currently expects one echo per Enhanced "
+                f"DICOM file: {path}"
+            )
+
+        if echo_time in echo_files:
+            raise ValueError(
+                f"Duplicate Enhanced DICOM EchoTime "
+                f"{echo_time!r} ms found in:\n"
+                f"  {echo_files[echo_time]}\n"
+                f"  {path}"
+            )
+
+        echo_files[
+            echo_time
+        ] = path
+
+        frame_info_by_echo[
+            echo_time
+        ] = frames
+
+        # --------------------------------------------------------
+        # Metadata collection.
+        # --------------------------------------------------------
+
+        if collect_metadata:
+            ds = pydicom.dcmread(
+                path,
+                stop_before_pixels=True,
+            )
+
+            if acquisition_metadata is None:
+                acquisition_metadata = (
+                    extract_enhanced_acquisition_metadata(
+                        ds
+                    )
+                )
+
+            # ----------------------------------------------------
+            # Shared pixel geometry for this Enhanced volume.
+            # ----------------------------------------------------
+
+            pixel_spacing = None
+            slice_thickness = None
+            spacing_between_slices = None
+
+            try:
+                voxel_info = (
+                    voxel_sizes_detailed(ds)
+                )
+
+                interpolation = voxel_info[
+                    "interpolation"
+                ]
+
+                if (
+                    interpolation["dx"] is not None
+                    and interpolation["dy"] is not None
+                ):
+                    pixel_spacing = [
+                        float(
+                            interpolation["dx"]
+                        ),
+                        float(
+                            interpolation["dy"]
+                        ),
+                    ]
+
+                slice_thickness = (
+                    interpolation[
+                        "slice_thickness"
+                    ]
+                )
+
+                spacing_between_slices = (
+                    interpolation[
+                        "dz_spacing"
+                    ]
+                )
+
+            except Exception:
+                # Geometry from individual frames is still
+                # preserved even if optional pixel-measure
+                # metadata cannot be extracted.
+                pass
+
+            # ----------------------------------------------------
+            # Preserve per-frame source geometry.
+            # ----------------------------------------------------
+
+            slice_planes = []
+
+            for frame in frames:
+                orientation = frame[
+                    "ImageOrientationPatient"
+                ]
+
+                position = frame[
+                    "ImagePositionPatient"
+                ]
+
+                plane = {}
+
+                if orientation is not None:
+                    orientation = [
+                        float(x)
+                        for x in orientation
+                    ]
+
+                    plane[
+                        "ImageOrientationPatient"
+                    ] = orientation
+
+                    if len(orientation) == 6:
+                        plane[
+                            "SliceNormal"
+                        ] = np.cross(
+                            np.asarray(
+                                orientation[:3],
+                                dtype=float,
+                            ),
+                            np.asarray(
+                                orientation[3:],
+                                dtype=float,
+                            ),
+                        ).tolist()
+
+                if position is not None:
+                    plane[
+                        "ImagePositionPatient"
+                    ] = [
+                        float(x)
+                        for x in position
+                    ]
+
+                if pixel_spacing is not None:
+                    plane[
+                        "PixelSpacing"
+                    ] = pixel_spacing
+
+                if slice_thickness is not None:
+                    plane[
+                        "SliceThickness"
+                    ] = float(
+                        slice_thickness
+                    )
+
+                if spacing_between_slices is not None:
+                    plane[
+                        "SpacingBetweenSlices"
+                    ] = float(
+                        spacing_between_slices
+                    )
+
+                slice_planes.append(
+                    plane
+                )
+
+            volume_geometry = {
+                "SlicePlanes": (
+                    slice_planes
+                )
+            }
+
+            if echo_time is not None:
+                volume_geometry[
+                    "EchoTime"
+                ] = echo_time
+
+            geometry_by_echo[
+                echo_time
+            ] = volume_geometry
+
+    # ------------------------------------------------------------
+    # Validate EchoTime consistency.
+    # ------------------------------------------------------------
+
+    if (
+        None in echo_files
+        and len(echo_files) > 1
+    ):
+        raise ValueError(
+            "Inconsistent Enhanced DICOM EchoTime metadata: "
+            "at least one file is missing EchoTime while "
+            "other files contain EchoTime."
+        )
+
+    # ------------------------------------------------------------
+    # Read each Enhanced file as a 3D SimpleITK image.
+    # ------------------------------------------------------------
+
+    echo_images = {}
+
+    for echo_time, path in echo_files.items():
+        image = sitk.ReadImage(
+            str(path)
+        )
+
+        if image.GetDimension() != 3:
+            raise ValueError(
+                f"Expected Enhanced DICOM file to produce "
+                f"a 3D image, but got dimension "
+                f"{image.GetDimension()}: {path}"
+            )
+
+        echo_images[
+            echo_time
+        ] = image
+
+    # ------------------------------------------------------------
+    # Assemble output image.
+    # ------------------------------------------------------------
+
+    if len(echo_images) == 1:
+        sorted_keys = list(
+            echo_images.keys()
+        )
+
+        output_image = echo_images[
+            sorted_keys[0]
+        ]
+
+    else:
+        sorted_keys = sorted(
+            echo_images.keys()
+        )
+
+        reference_image = echo_images[
+            sorted_keys[0]
+        ]
+
+        reference_size = (
+            reference_image.GetSize()
+        )
+
+        reference_spacing = np.asarray(
+            reference_image.GetSpacing(),
+            dtype=float,
+        )
+
+        reference_origin = np.asarray(
+            reference_image.GetOrigin(),
+            dtype=float,
+        )
+
+        reference_direction = np.asarray(
+            reference_image.GetDirection(),
+            dtype=float,
+        )
+
+        # --------------------------------------------------------
+        # Verify that all echoes occupy the same spatial grid.
+        # --------------------------------------------------------
+
+        for echo_time in sorted_keys[1:]:
+            image = echo_images[
+                echo_time
+            ]
+
+            if (
+                image.GetSize()
+                != reference_size
+            ):
+                raise ValueError(
+                    "Enhanced DICOM echo volumes have "
+                    "different image sizes."
+                )
+
+            if not np.allclose(
+                image.GetSpacing(),
+                reference_spacing,
+                rtol=1e-5,
+                atol=1e-5,
+            ):
+                raise ValueError(
+                    "Enhanced DICOM echo volumes have "
+                    "different spatial spacing."
+                )
+
+            if not np.allclose(
+                image.GetOrigin(),
+                reference_origin,
+                rtol=1e-5,
+                atol=1e-4,
+            ):
+                raise ValueError(
+                    "Enhanced DICOM echo volumes have "
+                    "different spatial origins."
+                )
+
+            if not np.allclose(
+                image.GetDirection(),
+                reference_direction,
+                rtol=1e-5,
+                atol=1e-5,
+            ):
+                raise ValueError(
+                    "Enhanced DICOM echo volumes have "
+                    "different spatial directions."
+                )
+
+        image_list = [
+            echo_images[echo_time]
+            for echo_time in sorted_keys
+        ]
+
+        output_image = sitk.JoinSeries(
+            image_list
+        )
+
+    # ------------------------------------------------------------
+    # Standard image-only behavior.
+    # ------------------------------------------------------------
+
+    if not collect_metadata:
+        return output_image
+
+    # ------------------------------------------------------------
+    # Acquisition metadata.
+    # ------------------------------------------------------------
+
+    if acquisition_metadata is None:
+        acquisition_metadata = {}
+
+    valid_echoes = [
+        echo_time
+        for echo_time in sorted_keys
+        if echo_time is not None
+    ]
+
+    if len(valid_echoes) == 1:
+        acquisition_metadata[
+            "EchoTime"
+        ] = round(
+            float(valid_echoes[0]),
+            6,
+        )
+
+    elif len(valid_echoes) > 1:
+        acquisition_metadata[
+            "EchoTimes"
+        ] = [
+            round(
+                float(echo_time),
+                6,
+            )
+            for echo_time in valid_echoes
+        ]
+
+    acquisition_metadata[
+        "TimeUnit"
+    ] = "ms"
+
+    # ------------------------------------------------------------
+    # Compress identical source geometry across echoes.
+    # ------------------------------------------------------------
+
+    source_volumes = [
+        geometry_by_echo[key]
+        for key in sorted_keys
+    ]
+
+    reference_planes = (
+        source_volumes[0][
+            "SlicePlanes"
+        ]
+    )
+
+    shared_geometry = all(
+        volume["SlicePlanes"]
+        == reference_planes
+        for volume in source_volumes[1:]
+    )
+
+    if shared_geometry:
+        source_geometry = {
+            "CoordinateSystem": "LPS",
+            "LengthUnit": "mm",
+            "SharedAcrossVolumes": True,
+            "SlicePlanes": (
+                reference_planes
+            ),
+        }
+
+    else:
+        source_geometry = {
+            "CoordinateSystem": "LPS",
+            "LengthUnit": "mm",
+            "SharedAcrossVolumes": False,
+            "Volumes": (
+                source_volumes
+            ),
+        }
+
+    # ------------------------------------------------------------
+    # Final metadata dictionary.
+    # ------------------------------------------------------------
+
+    metadata = {
+        "CMPLMetadataVersion": 1,
+
+        "Acquisition": (
+            acquisition_metadata
+        ),
+
+        "CMPLSourceGeometry": (
+            source_geometry
+        ),
+
+        "CMPLSimpleITKGeometry": {
+            "CoordinateSystem": "LPS",
+
+            "Dimension": (
+                output_image.GetDimension()
+            ),
+
+            "Size": list(
+                output_image.GetSize()
+            ),
+
+            "Origin": list(
+                output_image.GetOrigin()
+            ),
+
+            "Spacing": list(
+                output_image.GetSpacing()
+            ),
+
+            "Direction": list(
+                output_image.GetDirection()
+            ),
+        },
+    }
+
+    return output_image, metadata
+
 def dicom_to_SimpleITK(
     dicom_directory,
     series_id=None,
@@ -722,6 +1320,72 @@ def itk_to_nifti(itk_image, nifti_path, verbose=True):
 
     return os.path.abspath(nifti_path)
 
+def _directory_contains_enhanced_dicom(
+    dicom_directory,
+    series_id=None,
+):
+    """
+    Check whether a directory contains an Enhanced DICOM series.
+
+    If series_id is supplied, only Enhanced DICOM files belonging
+    to that SeriesInstanceUID are considered.
+    """
+
+    dicom_directory = str(
+        dicom_directory
+    )
+
+    if not os.path.isdir(
+        dicom_directory
+    ):
+        raise ValueError(
+            f"DICOM directory does not exist: "
+            f"{dicom_directory}"
+        )
+
+    for filename in os.listdir(
+        dicom_directory
+    ):
+        path = os.path.join(
+            dicom_directory,
+            filename,
+        )
+
+        if not os.path.isfile(path):
+            continue
+
+        try:
+            if not is_enhanced_dicom(
+                path
+            ):
+                continue
+
+            if series_id is None:
+                return True
+
+            ds = pydicom.dcmread(
+                path,
+                stop_before_pixels=True,
+            )
+
+            current_series_id = getattr(
+                ds,
+                "SeriesInstanceUID",
+                None,
+            )
+
+            if (
+                current_series_id is not None
+                and str(current_series_id)
+                == str(series_id)
+            ):
+                return True
+
+        except Exception:
+            continue
+
+    return False
+
 def dicom_to_nifti(
     dicom_directory,
     nifti_path,
@@ -731,10 +1395,7 @@ def dicom_to_nifti(
     """
     Convert a DICOM series to NIfTI and write a JSON metadata sidecar.
 
-    The DICOM series is first converted to a SimpleITK image while
-    collecting selected acquisition metadata and the original DICOM
-    geometry. The image is then written as NIfTI and the metadata are
-    written to a matching JSON sidecar.
+    Classic and Enhanced DICOM series are detected automatically.
 
     Parameters
     ----------
@@ -746,11 +1407,11 @@ def dicom_to_nifti(
         '.nii.gz' is appended.
 
     series_id : str, optional
-        DICOM SeriesInstanceUID to read. If omitted, the first available
+        SeriesInstanceUID to read. If omitted, the first available
         series is used.
 
     verbose : bool, default=True
-        If True, print the paths of written files.
+        If True, print conversion progress and written file paths.
 
     Returns
     -------
@@ -758,22 +1419,72 @@ def dicom_to_nifti(
         Metadata written to the JSON sidecar.
     """
 
-    # ------------------------------------------------------------
-    # Read DICOM and collect metadata.
-    # ------------------------------------------------------------
-
-    image, metadata = _dicom_to_simpleitk(
-        dicom_directory,
-        series_id=series_id,
-        collect_metadata=True,
+    dicom_directory = str(
+        dicom_directory
     )
 
     # ------------------------------------------------------------
-    # Write NIfTI.
-    #
-    # itk_to_nifti() already normalizes the extension and returns
-    # the absolute path of the written file.
+    # Detect DICOM representation.
     # ------------------------------------------------------------
+
+    if verbose:
+        print(
+            "Inspecting DICOM series..."
+        )
+
+    is_enhanced = (
+        _directory_contains_enhanced_dicom(
+            dicom_directory,
+            series_id=series_id,
+        )
+    )
+
+    # ------------------------------------------------------------
+    # Read image and metadata using the appropriate converter.
+    # ------------------------------------------------------------
+
+    if is_enhanced:
+        if verbose:
+            print(
+                "Detected Enhanced DICOM series."
+            )
+            print(
+                "Reading Enhanced DICOM volumes..."
+            )
+
+        image, metadata = (
+            _enhanced_dicom_to_simpleitk(
+                dicom_directory,
+                series_id=series_id,
+                collect_metadata=True,
+            )
+        )
+
+    else:
+        if verbose:
+            print(
+                "Detected classic DICOM series."
+            )
+            print(
+                "Reading DICOM slices..."
+            )
+
+        image, metadata = (
+            _dicom_to_simpleitk(
+                dicom_directory,
+                series_id=series_id,
+                collect_metadata=True,
+            )
+        )
+
+    # ------------------------------------------------------------
+    # Write NIfTI.
+    # ------------------------------------------------------------
+
+    if verbose:
+        print(
+            "Writing NIfTI image..."
+        )
 
     nifti_path = itk_to_nifti(
         image,
@@ -782,30 +1493,39 @@ def dicom_to_nifti(
     )
 
     # ------------------------------------------------------------
-    # Determine matching JSON sidecar path.
+    # Determine JSON sidecar path.
     # ------------------------------------------------------------
 
-    if nifti_path.endswith(".nii.gz"):
+    if nifti_path.endswith(
+        ".nii.gz"
+    ):
         json_path = (
-            nifti_path[:-7] + ".json"
+            nifti_path[:-7]
+            + ".json"
         )
 
-    elif nifti_path.endswith(".nii"):
+    elif nifti_path.endswith(
+        ".nii"
+    ):
         json_path = (
-            nifti_path[:-4] + ".json"
+            nifti_path[:-4]
+            + ".json"
         )
 
     else:
-        # This should not normally be reachable because
-        # itk_to_nifti() normalizes the extension.
         raise ValueError(
             f"Unexpected NIfTI output path: "
             f"{nifti_path}"
         )
 
     # ------------------------------------------------------------
-    # Write metadata sidecar.
+    # Write JSON metadata.
     # ------------------------------------------------------------
+
+    if verbose:
+        print(
+            "Writing metadata sidecar..."
+        )
 
     with open(
         json_path,
@@ -818,7 +1538,9 @@ def dicom_to_nifti(
             indent=2,
         )
 
-        file.write("\n")
+        file.write(
+            "\n"
+        )
 
     if verbose:
         print(
