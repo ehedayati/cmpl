@@ -79,7 +79,7 @@ def extract_acquisition_metadata(reader):
 
     Patient-identifying fields are intentionally excluded.
 
-    DICOM time values stored in milliseconds are converted to seconds.
+    DICOM timing values are preserved in milliseconds.
     """
     metadata = {}
 
@@ -105,9 +105,9 @@ def extract_acquisition_metadata(reader):
         "EchoTrainLength": ("0018|0091", 1.0),
         "PixelBandwidth": ("0018|0095", 1.0),
 
-        # DICOM stores these values in milliseconds.
-        "RepetitionTime": ("0018|0080", 0.001),
-        "InversionTime": ("0018|0082", 0.001),
+        # Preserve DICOM timing values in milliseconds.
+        "RepetitionTime": ("0018|0080", 1.0),
+        "InversionTime": ("0018|0082", 1.0),
     }
 
     for name, tag in string_tags.items():

@@ -10,7 +10,14 @@ import SimpleITK as sitk
 from collections import defaultdict
 from nibabel.nifti1 import Nifti1Image
 import warnings
-from cmpl.dicom.geometry import get_slice_position
+from cmpl.dicom.geometry import (
+    extract_slice_geometry,
+    get_slice_position,
+)
+
+from cmpl.dicom.metadata import (
+    extract_acquisition_metadata,
+)
 
 def save_scalar_map_like(ref_img: nib.Nifti1Image,
                          data_in: np.ndarray,
@@ -312,55 +319,62 @@ def update_nifti_data(file_path, new_data, output_path=None, dtype=np.float32):
     return new_nifti
 
 
-def _dicom_to_simpleitk(dicom_directory, series_id=None):
+def _dicom_to_simpleitk(
+    dicom_directory,
+    series_id=None,
+    collect_metadata=False,
+):
     """
-    Reads a multi-echo DICOM series from a directory where all echoes are
-    stored in one series but with different EchoTime values (DICOM tag
-    0018|0081) on a per-slice basis.
+    Read a DICOM series into a SimpleITK image.
 
-    Returns either a 3D image if a single echo is found or a merged 4D image
-    if multiple echoes are present.
-
-    For each echo, the metadata from the first DICOM file in that echo group
-    is copied to the resulting 3D image wherever possible.
+    Multi-echo acquisitions stored under the same SeriesInstanceUID are
+    separated using EchoTime (0018|0081).
 
     Parameters
     ----------
-    dicom_directory : str
-        Path to the directory containing the DICOM files.
+    dicom_directory : str or Path
+        Directory containing the DICOM files.
 
     series_id : str, optional
-        DICOM SeriesInstanceUID to read. If not provided, the first available
-        series is used. If multiple series are found, a warning is issued.
+        DICOM SeriesInstanceUID to read. If omitted, the first available
+        series is used. If multiple series are present, a warning is issued.
+
+    collect_metadata : bool, default=False
+        If True, also collect selected acquisition metadata and original
+        per-slice DICOM geometry.
 
     Returns
     -------
     sitk.Image
-        A 4D image if multiple echoes are present, or a 3D image if only one
-        echo is found.
+        Returned when collect_metadata=False.
 
-    Raises
-    ------
-    ValueError
-        If no DICOM series is found, the requested series ID does not exist,
-        EchoTime contains an invalid value, or EchoTime metadata are
-        inconsistent across files.
+    tuple[sitk.Image, dict]
+        Returned when collect_metadata=True.
     """
 
-    # Initialize the ImageSeriesReader and get the available series IDs.
+    dicom_directory = str(dicom_directory)
+
+    # ------------------------------------------------------------
+    # Discover DICOM series.
+    # ------------------------------------------------------------
+
     series_reader = sitk.ImageSeriesReader()
-    series_ids = series_reader.GetGDCMSeriesIDs(dicom_directory)
+
+    series_ids = series_reader.GetGDCMSeriesIDs(
+        dicom_directory
+    )
 
     if not series_ids:
         raise ValueError(
-            f"No DICOM series found in directory: {dicom_directory}"
+            f"No DICOM series found in directory: "
+            f"{dicom_directory}"
         )
 
-    # Use the first available series unless the user explicitly selects one.
     if series_id is None:
         if len(series_ids) > 1:
             warnings.warn(
-                f"Found {len(series_ids)} DICOM series in {dicom_directory}. "
+                f"Found {len(series_ids)} DICOM series in "
+                f"{dicom_directory}. "
                 f"Using the first series: {series_ids[0]}",
                 UserWarning,
                 stacklevel=2,
@@ -379,111 +393,289 @@ def _dicom_to_simpleitk(dicom_directory, series_id=None):
         series_id,
     )
 
-    # Group file names by EchoTime.
+    # ------------------------------------------------------------
+    # Group files by EchoTime.
+    # ------------------------------------------------------------
+
     echo_groups = defaultdict(list)
     missing_echo_time = []
 
-    for f in file_names:
+    for filename in file_names:
         file_reader = sitk.ImageFileReader()
-        file_reader.SetFileName(f)
+        file_reader.SetFileName(filename)
         file_reader.ReadImageInformation()
 
         if file_reader.HasMetaDataKey("0018|0081"):
-            echo_value = file_reader.GetMetaData("0018|0081").strip()
+            echo_value = file_reader.GetMetaData(
+                "0018|0081"
+            ).strip()
 
             if echo_value:
                 try:
                     echo_time = float(echo_value)
+
                 except ValueError as exc:
                     raise ValueError(
-                        f"Invalid EchoTime value {echo_value!r} "
-                        f"in DICOM file: {f}"
+                        f"Invalid EchoTime value "
+                        f"{echo_value!r} in DICOM file: "
+                        f"{filename}"
                     ) from exc
 
-                echo_groups[echo_time].append(f)
+                echo_groups[echo_time].append(
+                    filename
+                )
+
                 continue
 
-        missing_echo_time.append(f)
+        missing_echo_time.append(
+            filename
+        )
 
-    # If EchoTime exists for some files but not others, the series is
-    # ambiguous and should not be assembled silently.
+    # EchoTime may be absent for a conventional acquisition.
+    # A mixture of present and absent EchoTime values is ambiguous.
     if missing_echo_time:
         if echo_groups:
             raise ValueError(
                 "Inconsistent EchoTime metadata: "
-                f"{len(missing_echo_time)} of {len(file_names)} DICOM files "
-                "are missing EchoTime (0018|0081)."
+                f"{len(missing_echo_time)} of "
+                f"{len(file_names)} DICOM files are "
+                "missing EchoTime (0018|0081)."
             )
 
-        # If none of the files contain EchoTime, treat the series as a
-        # conventional single-volume acquisition.
         echo_groups[None] = missing_echo_time
 
-    # Process each echo group as a separate 3D image.
+    # ------------------------------------------------------------
+    # Process each echo independently.
+    # ------------------------------------------------------------
+
     echo_images = {}
+
+    acquisition_metadata = None
+    geometry_by_echo = {}
 
     for echo, files in echo_groups.items():
 
-        # def get_slice_position(filename):
-        #     """
-        #     Return the physical slice position projected onto the
-        #     DICOM slice normal.
-        #     """
-        #     r = sitk.ImageFileReader()
-        #     r.SetFileName(filename)
-        #     r.ReadImageInformation()
-        #
-        #     iop = np.array([
-        #         float(x)
-        #         for x in r.GetMetaData("0020|0037").split("\\")
-        #     ])
-        #
-        #     ipp = np.array([
-        #         float(x)
-        #         for x in r.GetMetaData("0020|0032").split("\\")
-        #     ])
-        #
-        #     slice_normal = np.cross(iop[:3], iop[3:])
-        #
-        #     return np.dot(ipp, slice_normal)
+        # Preserve physical DICOM slice ordering.
+        files.sort(
+            key=get_slice_position
+        )
 
-        # Sort slices by their physical position along the DICOM slice normal.
-        files.sort(key=get_slice_position)
+        # --------------------------------------------------------
+        # Metadata from first physical slice.
+        # --------------------------------------------------------
 
-        # Read metadata from the first DICOM file in the group.
         first_file = files[0]
 
         meta_reader = sitk.ImageFileReader()
         meta_reader.SetFileName(first_file)
         meta_reader.ReadImageInformation()
 
-        first_metadata = {}
+        first_metadata = {
+            key: meta_reader.GetMetaData(key)
+            for key in meta_reader.GetMetaDataKeys()
+        }
 
-        for key in meta_reader.GetMetaDataKeys():
-            first_metadata[key] = meta_reader.GetMetaData(key)
+        # --------------------------------------------------------
+        # Acquisition metadata.
+        # --------------------------------------------------------
 
-        # Read the sorted slices as a 3D image.
-        series_reader.SetFileNames(files)
+        if (
+            collect_metadata
+            and acquisition_metadata is None
+        ):
+            acquisition_metadata = (
+                extract_acquisition_metadata(
+                    meta_reader
+                )
+            )
+
+        # --------------------------------------------------------
+        # Exact source DICOM plane geometry.
+        # --------------------------------------------------------
+
+        if collect_metadata:
+            volume_geometry = {
+                "SlicePlanes": [
+                    extract_slice_geometry(
+                        filename
+                    )
+                    for filename in files
+                ]
+            }
+
+            if echo is not None:
+                # Keep EchoTime in DICOM-native milliseconds.
+                volume_geometry["EchoTime"] = round(
+                    float(echo),
+                    6,
+                )
+
+            geometry_by_echo[echo] = (
+                volume_geometry
+            )
+
+        # --------------------------------------------------------
+        # Read the sorted files as a 3D image.
+        # --------------------------------------------------------
+
+        series_reader.SetFileNames(
+            files
+        )
+
         image = series_reader.Execute()
 
-        # Copy metadata from the first file to the resulting image.
+        # Preserve previous CMPL behavior: copy metadata from
+        # the first DICOM slice to the resulting volume.
         for key, value in first_metadata.items():
-            image.SetMetaData(key, value)
+            image.SetMetaData(
+                key,
+                value,
+            )
 
         echo_images[echo] = image
 
-    # If only one echo exists, return the single 3D image.
+    # ------------------------------------------------------------
+    # Assemble the final image.
+    # ------------------------------------------------------------
+
     if len(echo_images) == 1:
-        return list(echo_images.values())[0]
+        sorted_keys = list(
+            echo_images.keys()
+        )
 
-    # If multiple echoes are present, order them by EchoTime and merge
-    # them into a 4D image.
-    sorted_keys = sorted(echo_images.keys())
-    image_list = [echo_images[key] for key in sorted_keys]
+        output_image = echo_images[
+            sorted_keys[0]
+        ]
 
-    merged_image = sitk.JoinSeries(image_list)
+    else:
+        sorted_keys = sorted(
+            echo_images.keys()
+        )
 
-    return merged_image
+        image_list = [
+            echo_images[key]
+            for key in sorted_keys
+        ]
+
+        output_image = sitk.JoinSeries(
+            image_list
+        )
+
+    # ------------------------------------------------------------
+    # Standard behavior.
+    # ------------------------------------------------------------
+
+    if not collect_metadata:
+        return output_image
+
+    # ------------------------------------------------------------
+    # Acquisition metadata.
+    # ------------------------------------------------------------
+
+    if acquisition_metadata is None:
+        acquisition_metadata = {}
+
+    valid_echoes = [
+        echo
+        for echo in sorted_keys
+        if echo is not None
+    ]
+
+    if len(valid_echoes) == 1:
+        acquisition_metadata["EchoTime"] = round(
+            float(valid_echoes[0]),
+            6,
+        )
+
+    elif len(valid_echoes) > 1:
+        acquisition_metadata["EchoTimes"] = [
+            round(
+                float(echo),
+                6,
+            )
+            for echo in valid_echoes
+        ]
+
+    acquisition_metadata["TimeUnit"] = "ms"
+
+    # ------------------------------------------------------------
+    # Source geometry.
+    #
+    # Avoid repeating identical slice-plane information for every
+    # echo. If volume geometries differ, retain them independently.
+    # ------------------------------------------------------------
+
+    source_volumes = [
+        geometry_by_echo[key]
+        for key in sorted_keys
+    ]
+
+    reference_planes = (
+        source_volumes[0]["SlicePlanes"]
+    )
+
+    shared_geometry = all(
+        volume["SlicePlanes"] == reference_planes
+        for volume in source_volumes[1:]
+    )
+
+    if shared_geometry:
+        source_geometry = {
+            "CoordinateSystem": "LPS",
+            "LengthUnit": "mm",
+            "SharedAcrossVolumes": True,
+            "SlicePlanes": reference_planes,
+        }
+
+    else:
+        source_geometry = {
+            "CoordinateSystem": "LPS",
+            "LengthUnit": "mm",
+            "SharedAcrossVolumes": False,
+            "Volumes": source_volumes,
+        }
+
+    # ------------------------------------------------------------
+    # Final metadata object.
+    # ------------------------------------------------------------
+
+    metadata = {
+        "CMPLMetadataVersion": 1,
+
+        "Acquisition": (
+            acquisition_metadata
+        ),
+
+        "CMPLSourceGeometry": (
+            source_geometry
+        ),
+
+        "CMPLSimpleITKGeometry": {
+            "CoordinateSystem": "LPS",
+
+            "Dimension": (
+                output_image.GetDimension()
+            ),
+
+            "Size": list(
+                output_image.GetSize()
+            ),
+
+            "Origin": list(
+                output_image.GetOrigin()
+            ),
+
+            "Spacing": list(
+                output_image.GetSpacing()
+            ),
+
+            "Direction": list(
+                output_image.GetDirection()
+            ),
+        },
+    }
+
+    return output_image, metadata
 
 def dicom_to_SimpleITK(
     dicom_directory,
@@ -509,6 +701,7 @@ def dicom_to_SimpleITK(
     return _dicom_to_simpleitk(
         dicom_directory,
         series_id=series_id,
+        collect_metadata=False,
     )
 
 def itk_to_nifti(itk_image, nifti_path, verbose=True):
