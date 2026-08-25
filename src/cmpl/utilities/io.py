@@ -1,20 +1,22 @@
 # File created by: Eisa Hedayati
 # Date: 8/27/2024
 # Description: This file is developed at CMRR
+import json
+import os
+import warnings
+from collections import defaultdict
+
 import nibabel as nib
 import numpy as np
-from numpy.typing import NDArray
-import os
 import pydicom
 import SimpleITK as sitk
-from collections import defaultdict
 from nibabel.nifti1 import Nifti1Image
-import warnings
+from numpy.typing import NDArray
+
 from cmpl.dicom.geometry import (
     extract_slice_geometry,
     get_slice_position,
 )
-
 from cmpl.dicom.metadata import (
     extract_acquisition_metadata,
 )
@@ -317,7 +319,6 @@ def update_nifti_data(file_path, new_data, output_path=None, dtype=np.float32):
     nib.save(new_nifti, output_path)
 
     return new_nifti
-
 
 def _dicom_to_simpleitk(
     dicom_directory,
@@ -720,6 +721,112 @@ def itk_to_nifti(itk_image, nifti_path, verbose=True):
         raise  # re-raise the exception for further handling if needed
 
     return os.path.abspath(nifti_path)
+
+def dicom_to_nifti(
+    dicom_directory,
+    nifti_path,
+    series_id=None,
+    verbose=True,
+):
+    """
+    Convert a DICOM series to NIfTI and write a JSON metadata sidecar.
+
+    The DICOM series is first converted to a SimpleITK image while
+    collecting selected acquisition metadata and the original DICOM
+    geometry. The image is then written as NIfTI and the metadata are
+    written to a matching JSON sidecar.
+
+    Parameters
+    ----------
+    dicom_directory : str or Path
+        Directory containing the DICOM series.
+
+    nifti_path : str or Path
+        Output NIfTI path. If neither '.nii' nor '.nii.gz' is supplied,
+        '.nii.gz' is appended.
+
+    series_id : str, optional
+        DICOM SeriesInstanceUID to read. If omitted, the first available
+        series is used.
+
+    verbose : bool, default=True
+        If True, print the paths of written files.
+
+    Returns
+    -------
+    dict
+        Metadata written to the JSON sidecar.
+    """
+
+    # ------------------------------------------------------------
+    # Read DICOM and collect metadata.
+    # ------------------------------------------------------------
+
+    image, metadata = _dicom_to_simpleitk(
+        dicom_directory,
+        series_id=series_id,
+        collect_metadata=True,
+    )
+
+    # ------------------------------------------------------------
+    # Write NIfTI.
+    #
+    # itk_to_nifti() already normalizes the extension and returns
+    # the absolute path of the written file.
+    # ------------------------------------------------------------
+
+    nifti_path = itk_to_nifti(
+        image,
+        str(nifti_path),
+        verbose=verbose,
+    )
+
+    # ------------------------------------------------------------
+    # Determine matching JSON sidecar path.
+    # ------------------------------------------------------------
+
+    if nifti_path.endswith(".nii.gz"):
+        json_path = (
+            nifti_path[:-7] + ".json"
+        )
+
+    elif nifti_path.endswith(".nii"):
+        json_path = (
+            nifti_path[:-4] + ".json"
+        )
+
+    else:
+        # This should not normally be reachable because
+        # itk_to_nifti() normalizes the extension.
+        raise ValueError(
+            f"Unexpected NIfTI output path: "
+            f"{nifti_path}"
+        )
+
+    # ------------------------------------------------------------
+    # Write metadata sidecar.
+    # ------------------------------------------------------------
+
+    with open(
+        json_path,
+        "w",
+        encoding="utf-8",
+    ) as file:
+        json.dump(
+            metadata,
+            file,
+            indent=2,
+        )
+
+        file.write("\n")
+
+    if verbose:
+        print(
+            f"Metadata written successfully: "
+            f"{json_path}"
+        )
+
+    return metadata
 
 def itk_mask_correction(img: Nifti1Image, mask: Nifti1Image, tol: float = 1e-1, return_axis=False) -> np.ndarray:
     """

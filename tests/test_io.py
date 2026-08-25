@@ -1,13 +1,19 @@
 # File created by: Eisa Hedayati
 # Date: 8/21/2026
 # Description: This file is developed at CMRR
-import numpy as np
+import json
+
 import nibabel as nib
+import numpy as np
 import pytest
 import SimpleITK as sitk
 
 from pydicom.dataset import FileDataset, FileMetaDataset
-from pydicom.uid import ExplicitVRLittleEndian, MRImageStorage, generate_uid
+from pydicom.uid import (
+    ExplicitVRLittleEndian,
+    MRImageStorage,
+    generate_uid,
+)
 
 
 # -------------------------------------------------------------------------
@@ -274,6 +280,10 @@ def _write_test_dicom(
     pixel_data,
     instance_number,
     z_position,
+    series_instance_uid=None,
+    study_instance_uid=None,
+    echo_time=None,
+    echo_number=1,
 ):
     """
     Create a minimal MR DICOM file suitable for testing CMPL's DICOM loader.
@@ -294,16 +304,32 @@ def _write_test_dicom(
 
     # Basic DICOM identity information.
     ds.SOPClassUID = MRImageStorage
-    ds.SOPInstanceUID = file_meta.MediaStorageSOPInstanceUID
-    ds.StudyInstanceUID = generate_uid()
-    ds.SeriesInstanceUID = generate_uid()
+    ds.SOPInstanceUID = (
+        file_meta.MediaStorageSOPInstanceUID
+    )
+
+    ds.StudyInstanceUID = (
+        study_instance_uid
+        if study_instance_uid is not None
+        else generate_uid()
+    )
+
+    ds.SeriesInstanceUID = (
+        series_instance_uid
+        if series_instance_uid is not None
+        else generate_uid()
+    )
 
     ds.Modality = "MR"
 
-    # Slice ordering / geometry information used by CMPL.
+    # Slice / echo information.
     ds.InstanceNumber = instance_number
-    ds.EchoNumbers = 1
+    ds.EchoNumbers = echo_number
 
+    if echo_time is not None:
+        ds.EchoTime = float(echo_time)
+
+    # Physical geometry.
     ds.ImagePositionPatient = [
         0.0,
         0.0,
@@ -311,11 +337,19 @@ def _write_test_dicom(
     ]
 
     ds.ImageOrientationPatient = [
-        1.0, 0.0, 0.0,
-        0.0, 1.0, 0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
     ]
 
-    ds.PixelSpacing = [1.0, 1.0]
+    ds.PixelSpacing = [
+        1.0,
+        1.0,
+    ]
+
     ds.SliceThickness = 2.0
     ds.SpacingBetweenSlices = 2.0
 
@@ -393,3 +427,443 @@ def test_load_dicom_scan_from_dir(tmp_path):
             result[..., i],
             expected,
         )
+
+def test_dicom_to_nifti_writes_image_and_json(tmp_path):
+    """
+    Verify end-to-end multi-echo DICOM to NIfTI conversion.
+
+    The test checks:
+    - multi-echo assembly,
+    - physical slice ordering,
+    - NIfTI pixel data,
+    - JSON sidecar creation,
+    - EchoTime metadata,
+    - shared source geometry.
+    """
+
+    from cmpl.utilities.io import dicom_to_nifti
+
+    dicom_dir = tmp_path / "dicoms"
+    dicom_dir.mkdir()
+
+    study_uid = generate_uid()
+    series_uid = generate_uid()
+
+    echo_times = [
+        1.41,
+        4.59,
+    ]
+
+    z_positions = [
+        0.0,
+        2.0,
+        4.0,
+    ]
+
+    instance_number = 1
+
+    # ------------------------------------------------------------
+    # Create two echoes, each containing three slices.
+    # ------------------------------------------------------------
+
+    for echo_index, echo_time in enumerate(
+        echo_times,
+        start=1,
+    ):
+        for slice_index, z_position in enumerate(
+            z_positions,
+            start=1,
+        ):
+            pixel_value = (
+                echo_index * 100
+                + slice_index * 10
+            )
+
+            pixel_data = np.full(
+                (4, 5),
+                pixel_value,
+                dtype=np.uint16,
+            )
+
+            _write_test_dicom(
+                dicom_dir
+                / (
+                    f"echo_{echo_index}_"
+                    f"slice_{slice_index}.dcm"
+                ),
+                pixel_data,
+                instance_number=instance_number,
+                z_position=z_position,
+                series_instance_uid=series_uid,
+                study_instance_uid=study_uid,
+                echo_time=echo_time,
+                echo_number=echo_index,
+            )
+
+            instance_number += 1
+
+    # ------------------------------------------------------------
+    # Convert.
+    # ------------------------------------------------------------
+
+    output_path = (
+        tmp_path
+        / "multi_echo.nii.gz"
+    )
+
+    metadata = dicom_to_nifti(
+        dicom_dir,
+        output_path,
+        verbose=False,
+    )
+
+    json_path = (
+        tmp_path
+        / "multi_echo.json"
+    )
+
+    assert output_path.exists()
+    assert json_path.exists()
+
+    # ------------------------------------------------------------
+    # Verify actual written NIfTI.
+    # ------------------------------------------------------------
+
+    image = sitk.ReadImage(
+        str(output_path)
+    )
+
+    assert image.GetDimension() == 4
+
+    assert image.GetSize() == (
+        5,
+        4,
+        3,
+        2,
+    )
+
+    np.testing.assert_allclose(
+        image.GetSpacing()[:3],
+        (
+            1.0,
+            1.0,
+            2.0,
+        ),
+    )
+
+    data = sitk.GetArrayFromImage(
+        image
+    )
+
+    assert data.shape == (
+        2,
+        3,
+        4,
+        5,
+    )
+
+    # Echo 1.
+    np.testing.assert_array_equal(
+        data[0, 0],
+        np.full(
+            (4, 5),
+            110,
+            dtype=np.uint16,
+        ),
+    )
+
+    np.testing.assert_array_equal(
+        data[0, 1],
+        np.full(
+            (4, 5),
+            120,
+            dtype=np.uint16,
+        ),
+    )
+
+    np.testing.assert_array_equal(
+        data[0, 2],
+        np.full(
+            (4, 5),
+            130,
+            dtype=np.uint16,
+        ),
+    )
+
+    # Echo 2.
+    np.testing.assert_array_equal(
+        data[1, 0],
+        np.full(
+            (4, 5),
+            210,
+            dtype=np.uint16,
+        ),
+    )
+
+    np.testing.assert_array_equal(
+        data[1, 1],
+        np.full(
+            (4, 5),
+            220,
+            dtype=np.uint16,
+        ),
+    )
+
+    np.testing.assert_array_equal(
+        data[1, 2],
+        np.full(
+            (4, 5),
+            230,
+            dtype=np.uint16,
+        ),
+    )
+
+    # ------------------------------------------------------------
+    # Verify metadata returned by CMPL.
+    # ------------------------------------------------------------
+
+    assert metadata["Acquisition"]["EchoTimes"] == [
+        1.41,
+        4.59,
+    ]
+
+    assert (
+        metadata["Acquisition"]["TimeUnit"]
+        == "ms"
+    )
+
+    source_geometry = metadata[
+        "CMPLSourceGeometry"
+    ]
+
+    assert (
+        source_geometry["SharedAcrossVolumes"]
+        is True
+    )
+
+    assert len(
+        source_geometry["SlicePlanes"]
+    ) == 3
+
+    # ------------------------------------------------------------
+    # Verify JSON written to disk.
+    # ------------------------------------------------------------
+
+    with open(
+        json_path,
+        "r",
+        encoding="utf-8",
+    ) as file:
+        saved_metadata = json.load(file)
+
+    assert saved_metadata == metadata
+
+    assert saved_metadata[
+        "CMPLSimpleITKGeometry"
+    ]["Dimension"] == 4
+
+    assert saved_metadata[
+        "CMPLSimpleITKGeometry"
+    ]["Size"] == [
+        5,
+        4,
+        3,
+        2,
+    ]
+
+def test_dicom_to_simpleitk_preserves_public_api(tmp_path):
+    """
+    Verify that the public dicom_to_SimpleITK API still returns
+    only a SimpleITK image after introducing metadata collection.
+    """
+
+    from cmpl.utilities.io import dicom_to_SimpleITK
+
+    dicom_dir = tmp_path / "dicoms"
+    dicom_dir.mkdir()
+
+    study_uid = generate_uid()
+    series_uid = generate_uid()
+
+    for slice_index, z_position in enumerate(
+        [0.0, 2.0, 4.0],
+        start=1,
+    ):
+        pixel_data = np.full(
+            (4, 5),
+            slice_index * 10,
+            dtype=np.uint16,
+        )
+
+        _write_test_dicom(
+            dicom_dir / f"slice_{slice_index}.dcm",
+            pixel_data,
+            instance_number=slice_index,
+            z_position=z_position,
+            series_instance_uid=series_uid,
+            study_instance_uid=study_uid,
+            echo_time=5.0,
+        )
+
+    image = dicom_to_SimpleITK(
+        dicom_dir
+    )
+
+    assert isinstance(
+        image,
+        sitk.Image,
+    )
+
+    assert image.GetDimension() == 3
+
+    assert image.GetSize() == (
+        5,
+        4,
+        3,
+    )
+
+def test_dicom_to_simpleitk_rejects_inconsistent_echo_time(
+    tmp_path,
+):
+    """
+    Verify that a DICOM series containing a mixture of present
+    and missing EchoTime values is rejected.
+    """
+
+    from cmpl.utilities.io import dicom_to_SimpleITK
+
+    dicom_dir = tmp_path / "dicoms"
+    dicom_dir.mkdir()
+
+    study_uid = generate_uid()
+    series_uid = generate_uid()
+
+    echo_times = [
+        5.0,
+        None,
+        5.0,
+    ]
+
+    for slice_index, (
+        z_position,
+        echo_time,
+    ) in enumerate(
+        zip(
+            [0.0, 2.0, 4.0],
+            echo_times,
+        ),
+        start=1,
+    ):
+        pixel_data = np.full(
+            (4, 5),
+            slice_index * 10,
+            dtype=np.uint16,
+        )
+
+        _write_test_dicom(
+            dicom_dir / f"slice_{slice_index}.dcm",
+            pixel_data,
+            instance_number=slice_index,
+            z_position=z_position,
+            series_instance_uid=series_uid,
+            study_instance_uid=study_uid,
+            echo_time=echo_time,
+        )
+
+    with pytest.raises(
+        ValueError,
+        match="Inconsistent EchoTime metadata",
+    ):
+        dicom_to_SimpleITK(
+            dicom_dir
+        )
+
+def test_dicom_to_simpleitk_allows_missing_echo_time(
+    tmp_path,
+):
+    """
+    Verify that a conventional DICOM series with no EchoTime
+    metadata is treated as a single 3D volume.
+    """
+
+    from cmpl.utilities.io import dicom_to_SimpleITK
+
+    dicom_dir = tmp_path / "dicoms"
+    dicom_dir.mkdir()
+
+    study_uid = generate_uid()
+    series_uid = generate_uid()
+
+    for slice_index, z_position in enumerate(
+        [0.0, 2.0, 4.0],
+        start=1,
+    ):
+        pixel_data = np.full(
+            (4, 5),
+            slice_index * 10,
+            dtype=np.uint16,
+        )
+
+        _write_test_dicom(
+            dicom_dir / f"slice_{slice_index}.dcm",
+            pixel_data,
+            instance_number=slice_index,
+            z_position=z_position,
+            series_instance_uid=series_uid,
+            study_instance_uid=study_uid,
+            echo_time=None,
+        )
+
+    image = dicom_to_SimpleITK(
+        dicom_dir
+    )
+
+    assert isinstance(
+        image,
+        sitk.Image,
+    )
+
+    assert image.GetDimension() == 3
+
+    assert image.GetSize() == (
+        5,
+        4,
+        3,
+    )
+
+    data = sitk.GetArrayFromImage(
+        image
+    )
+
+    assert data.shape == (
+        3,
+        4,
+        5,
+    )
+
+    np.testing.assert_array_equal(
+        data[0],
+        np.full(
+            (4, 5),
+            10,
+            dtype=np.uint16,
+        ),
+    )
+
+    np.testing.assert_array_equal(
+        data[1],
+        np.full(
+            (4, 5),
+            20,
+            dtype=np.uint16,
+        ),
+    )
+
+    np.testing.assert_array_equal(
+        data[2],
+        np.full(
+            (4, 5),
+            30,
+            dtype=np.uint16,
+        ),
+    )
