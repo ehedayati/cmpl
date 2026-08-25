@@ -1,22 +1,29 @@
 # CMPL — CMRR MRI Processing Libraries
 
-[![PyPI](https://img.shields.io/pypi/v/cmpl.svg)](https://pypi.org/project/cmpl/)
-[![Python](https://img.shields.io/pypi/pyversions/cmpl.svg)](https://pypi.org/project/cmpl/)
+[![PyPI version](https://img.shields.io/pypi/v/cmpl.svg)](https://pypi.org/project/cmpl/)
+[![Python versions](https://img.shields.io/pypi/pyversions/cmpl.svg)](https://pypi.org/project/cmpl/)
 
-CMPL is a Python package for MRI processing workflows developed at CMRR. It provides tools for MRI reconstruction, quantitative MRI, visualization, DICOM/NIfTI I/O, and supporting numerical/data utilities.
+PyPI: https://pypi.org/project/cmpl/
+
+GitHub: https://github.com/ehedayati/cmpl
+
+CMPL is a Python package for MRI processing workflows developed at CMRR. It provides tools for MRI reconstruction, quantitative MRI, visualization, DICOM/NIfTI conversion and I/O, and supporting numerical and data utilities.
 
 CMPL is organized as a modular library: the base installation stays lightweight, while larger or domain-specific dependencies are installed only when the corresponding functionality is needed.
 
 ## Highlights
 
+- Direct, geometry-aware DICOM-series to NIfTI conversion with JSON metadata sidecars
+- Multi-echo DICOM support, including 4D NIfTI output ordered by echo time
+- DICOM geometry and acquisition-metadata utilities
 - Parallel MRI reconstruction with 1D/2D GRAPPA and conjugate-gradient SENSE
 - Quantitative MRI tools for T2* fitting, signal reconstruction, and fitting-error analysis
-- MRI visualization utilities for 2D comparisons, 3D volume browsing, and segmentation overlays
-- DICOM, enhanced-DICOM, NIfTI, and SimpleITK utilities
+- MRI visualization utilities for 2D comparisons and 3D volume browsing
+- DICOM, enhanced-DICOM, NIfTI, HDF5, and SimpleITK utilities
 - Lightweight numerical utilities shared across CMPL
 - Optional pandas-based indexing for CMPL-style medical-data directory structures
 - Lazy package imports so `import cmpl` does not eagerly load large optional dependencies
-- Backward-compatible convenience aliases such as `cmpl.recon`, `cmpl.qmr`, `cmpl.vis`, and `cmpl.utils`
+- Convenient aliases such as `cmpl.recon`, `cmpl.qmr`, `cmpl.vis`, and `cmpl.io`
 
 ## Requirements
 
@@ -78,65 +85,209 @@ CMPL exposes convenient aliases for commonly used subpackages:
 cmpl.recon   # reconstruction
 cmpl.qmr     # quantitative MRI
 cmpl.vis     # visualization
-cmpl.utils   # utilities
 cmpl.io      # I/O utilities
+cmpl.dicom   # DICOM metadata and geometry utilities
+cmpl.utils   # utilities
 ```
 
 The aliases are resolved lazily, so importing CMPL itself does not require every optional dependency to be loaded.
 
-## Visualization
+## DICOM and NIfTI I/O
 
-Install the visualization extra:
+Install the I/O extra:
 
 ```bash
-python -m pip install "cmpl[viz]"
+python -m pip install "cmpl[io]"
 ```
 
-### Browse or display a 3D MRI volume
+### Convert a DICOM series directly to NIfTI
+
+CMPL 0.2.2 includes direct DICOM-series to NIfTI conversion. The converter physically orders the DICOM slices, supports single- and multi-echo acquisitions, writes the NIfTI image, and creates a matching JSON sidecar containing acquisition metadata and source geometry.
 
 ```python
-from cmpl.visualization import plot_3D_mri
+from cmpl.utilities.io import dicom_to_nifti
 
-plot_3D_mri(
-    volume,
-    slice_number=volume.shape[2] // 2,
-    alpha=0.5,
-    direction="sagittal",
-    cmap="gray",
-    vmin=0,
-    vmax=1,
-    dpi=300,
+metadata = dicom_to_nifti(
+    "/path/to/dicom_series",
+    "output.nii.gz",
 )
 ```
 
-If an interactive Matplotlib backend is available, `plot_3D_mri` can use interactive controls. Otherwise it falls back to static redraw mode.
+This creates:
 
+```text
+output.nii.gz
+output.json
+```
 
-### Compare images side by side
+If the output path does not end in `.nii` or `.nii.gz`, CMPL appends `.nii.gz` automatically.
+
+For a single echo, the output is a 3D image. When multiple echoes are present, CMPL groups volumes by DICOM `EchoTime`, orders them by echo time, and writes a 4D NIfTI image.
+
+The JSON sidecar includes:
+
+- selected acquisition metadata
+- echo time or echo times in milliseconds
+- original DICOM slice-plane geometry in LPS coordinates
+- the SimpleITK image size, origin, spacing, and direction used for conversion
+
+The returned value is the same metadata dictionary written to the JSON sidecar.
+
+If a directory contains multiple DICOM series, a specific `SeriesInstanceUID` can be selected:
 
 ```python
-from cmpl.visualization import side_by_side_view
-
-side_by_side_view(
-    image_a,
-    image_b,
-    titles=["Reference", "Reconstruction"],
-    color_palette="gray",
+metadata = dicom_to_nifti(
+    "/path/to/dicom_directory",
+    "output.nii.gz",
+    series_id="1.2.840...",
 )
 ```
 
-### Overlay a segmentation
+### Read a NIfTI file
 
 ```python
-from cmpl.visualization import visualize_segmentation_slice
+from cmpl.utilities.io import nifti_read
 
-visualize_segmentation_slice(
-    grayscale_image,
-    segmentation,
-    slice_number=20,
-    dimension="axial",
+nifti_image, data = nifti_read("image.nii.gz")
+```
+
+### Replace NIfTI data while preserving geometry
+
+```python
+from cmpl.utilities.io import update_nifti_data
+
+updated = update_nifti_data(
+    "reference.nii.gz",
+    new_data,
+    output_path="updated.nii.gz",
 )
 ```
+
+### Load a DICOM directory as a NumPy array
+
+```python
+from cmpl.utilities.io import load_dicom_scan_from_dir
+
+volume = load_dicom_scan_from_dir(
+    "/path/to/dicom_directory",
+    reshape=True,
+)
+```
+
+For multi-echo data, the loader can return data arranged as:
+
+```text
+x, y, z, echo
+```
+
+depending on the acquisition metadata and requested reshaping behavior.
+
+### Read a DICOM series as SimpleITK
+
+```python
+from cmpl.utilities.io import dicom_to_SimpleITK
+
+image = dicom_to_SimpleITK("/path/to/dicom_directory")
+```
+
+The returned image is 3D for a single echo and 4D when multiple echoes are detected.
+
+### Write a SimpleITK image as NIfTI
+
+```python
+from cmpl.utilities.io import itk_to_nifti
+
+output_path = itk_to_nifti(
+    image,
+    "output.nii.gz",
+)
+```
+
+### DICOM geometry and metadata helpers
+
+CMPL 0.2.2 separates DICOM geometry and acquisition-metadata handling into dedicated modules under `cmpl.dicom`.
+
+```python
+from cmpl.dicom import (
+    extract_slice_geometry,
+    get_slice_position,
+)
+
+geometry = extract_slice_geometry("slice001.dcm")
+position = get_slice_position("slice001.dcm")
+```
+
+Enhanced-DICOM helpers remain available as well:
+
+```python
+from cmpl.dicom.enhanced_dicom import (
+    get_slice_thickness,
+    get_spacing_between_slices,
+    voxel_sizes_detailed,
+)
+
+details = voxel_sizes_detailed(dataset)
+```
+
+## Reconstruction
+
+Reconstruction functionality is available under:
+
+```python
+cmpl.recon
+```
+
+PyTorch is required for the current reconstruction implementations:
+
+```bash
+python -m pip install "cmpl[torch]"
+```
+
+### 1D GRAPPA
+
+```python
+from cmpl.reconstruction.grappa import grappa_1d_recon
+
+reconstructed_kspace = grappa_1d_recon(
+    calibration_kspace,
+    undersampled_kspace,
+    reduction_factor=2,
+    kx=3,
+    ky=3,
+)
+```
+
+`calibration_kspace` and `undersampled_kspace` are expected to contain coil-resolved k-space data. The current implementation uses the ordering:
+
+```text
+frequency, phase, slice, coils
+```
+
+### 2D GRAPPA
+
+```python
+from cmpl.reconstruction.grappa import grappa_2d_recon
+
+reconstructed_kspace = grappa_2d_recon(
+    calibration_kspace,
+    undersampled_kspace,
+    kernel_size=(3, 3, 3),
+    reduction_factors=(2, 2),
+)
+```
+
+### Conjugate-gradient SENSE
+
+```python
+from cmpl.reconstruction.sense.cg import CG_sense_2D
+
+reconstructed_image = CG_sense_2D(
+    undersampled_image_space,
+    coil_sensitivity,
+)
+```
+
+Inputs to the current SENSE implementation are PyTorch tensors.
 
 ## Quantitative MRI
 
@@ -200,7 +351,7 @@ t2_star_map = result["T2_star_map"]
 s0_map = result["S0_map"]
 ```
 
-If CUDA is available and no device is supplied, the function can select a CUDA device automatically. CUDA usage will increase computation speed significantly.
+If CUDA is available and no device is supplied, the function can select a CUDA device automatically. CUDA usage can significantly accelerate fitting.
 
 ### Calculate normalized fitting error
 
@@ -217,142 +368,44 @@ rmse_pct, rse_pct = calculate_rmse_percentage_s0(
 
 CMPL also contains two- and three-parameter 2D/3D T2* fitting functions.
 
-## Reconstruction
+## Visualization
 
-Reconstruction functionality is available under:
-
-```python
-cmpl.recon
-```
-
-PyTorch is required for the current reconstruction implementations:
+Install the visualization extra:
 
 ```bash
-python -m pip install "cmpl[torch]"
+python -m pip install "cmpl[viz]"
 ```
 
-### 1D GRAPPA
+### Browse or display a 3D MRI volume
 
 ```python
-from cmpl.reconstruction.grappa import grappa_1d_recon
+from cmpl.visualization import plot_3D_mri
 
-reconstructed_kspace = grappa_1d_recon(
-    calibration_kspace,
-    undersampled_kspace,
-    reduction_factor=2,
-    kx=3,
-    ky=3,
+plot_3D_mri(
+    volume,
+    slice_number=volume.shape[2] // 2,
+    alpha=0.5,
+    direction="sagittal",
+    cmap="gray",
+    vmin=0,
+    vmax=1,
+    dpi=300,
 )
 ```
 
-`calibration_kspace` and `undersampled_kspace` are expected to contain coil-resolved k-space data. The current implementation uses the ordering:
+If an interactive Matplotlib backend is available, `plot_3D_mri` can use interactive controls. Otherwise it falls back to static redraw mode.
 
-```text
-frequency, phase, slice, coils
-```
-
-### 2D GRAPPA
+### Compare images side by side
 
 ```python
-from cmpl.reconstruction.grappa import grappa_2d_recon
+from cmpl.visualization import side_by_side_view
 
-reconstructed_kspace = grappa_2d_recon(
-    calibration_kspace,
-    undersampled_kspace,
-    kernel_size=(3, 3, 3),
-    reduction_factors=(2, 2),
+side_by_side_view(
+    image_a,
+    image_b,
+    titles=["Reference", "Reconstruction"],
+    color_palette="gray",
 )
-```
-
-### Conjugate-gradient SENSE
-
-```python
-from cmpl.reconstruction.sense import CG_sense_2D
-
-reconstructed_image = CG_sense_2D(
-    undersampled_image_space,
-    coil_sensitivity,
-)
-```
-
-Inputs to the current SENSE implementation are PyTorch tensors.
-
-## I/O
-
-Install the I/O extra:
-
-```bash
-python -m pip install "cmpl[io]"
-```
-
-### Read a NIfTI file
-
-```python
-from cmpl.utilities.io import nifti_read
-
-nifti_image, data = nifti_read("image.nii.gz")
-```
-
-### Replace NIfTI data while preserving geometry
-
-```python
-from cmpl.utilities.io import update_nifti_data
-
-updated = update_nifti_data(
-    "reference.nii.gz",
-    new_data,
-    output_path="updated.nii.gz",
-)
-```
-
-### Load a DICOM directory
-
-```python
-from cmpl.utilities.io import load_dicom_scan_from_dir
-
-volume = load_dicom_scan_from_dir(
-    "/path/to/dicom_directory",
-    reshape=True,
-)
-```
-
-For multi-echo data, the loader can return data arranged as:
-
-```text
-x, y, z, echo
-```
-
-depending on the acquisition metadata and requested reshaping behavior.
-
-### DICOM to SimpleITK
-
-```python
-from cmpl.utilities.io import dicom_to_SimpleITK
-
-image = dicom_to_SimpleITK("/path/to/dicom_directory")
-```
-
-### Write a SimpleITK image as NIfTI
-
-```python
-from cmpl.utilities.io import itk_to_nifti
-
-output_path = itk_to_nifti(
-    image,
-    "output.nii.gz",
-)
-```
-
-### Enhanced-DICOM helpers
-
-```python
-from cmpl.dicom.enhanced_dicom import (
-    get_slice_thickness,
-    get_spacing_between_slices,
-    voxel_sizes_detailed,
-)
-
-details = voxel_sizes_detailed(dataset)
 ```
 
 ## Numerical utilities
@@ -401,12 +454,8 @@ root/
 ├── Study001/
 │   ├── Dicoms/
 │   │   └── <contrast>/
-│   ├── h5_files/
-│   │   └── <contrast>.h5
-│   └── Segmentations/
-│       └── <contrast>/
-│           └── <group>/
-│               └── <segmentation>.nii.gz
+│   └── h5_files/
+│       └── <contrast>.h5
 └── Study002/
     └── ...
 ```
@@ -423,7 +472,7 @@ For example:
 import cmpl
 ```
 
-does not immediately require PyTorch, Matplotlib, pandas, nibabel, pydicom, SimpleITK, or h5py.
+does not immediately import PyTorch, Matplotlib, pandas, nibabel, pydicom, SimpleITK, h5py, or the Jupyter visualization stack.
 
 Optional functionality is loaded when its corresponding module or function is accessed. This keeps startup lightweight and allows users to install only the dependencies required for their workflow.
 
@@ -454,6 +503,8 @@ The test suite includes:
 - GRAPPA and SENSE reconstruction tests
 - visualization smoke tests
 - synthetic NIfTI, DICOM, and SimpleITK I/O tests
+- multi-echo DICOM-to-NIfTI conversion and JSON-sidecar tests
+- DICOM geometry and metadata tests
 - data-indexing tests
 
 ### Build the package
@@ -467,8 +518,11 @@ python -m twine check dist/*
 
 ```text
 src/cmpl/
+├── _version.py
 ├── dicom/
-│   └── enhanced_dicom.py
+│   ├── enhanced_dicom.py
+│   ├── geometry.py
+│   └── metadata.py
 ├── quantitative_MRI/
 │   └── mapping.py
 ├── reconstruction/
