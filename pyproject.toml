@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cmpl"
-version = "0.2.3"
+version = "0.2.4"
 authors = [{ name = "Eisa Hedayati" }]
 description = "CMRR MRI Processing Libraries"
 readme = "README.md"
@@ -27,6 +27,7 @@ dependencies = [
 
 [project.scripts]
 cmpl-dicom-to-nifti = "cmpl.cli.dicom_to_nifti:main"
+cmpl-t2star = "cmpl.cli.t2star:main"
 
 [project.optional-dependencies]
 

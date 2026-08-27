@@ -1,9 +1,23 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import torch
 import math
 from tqdm import tqdm
+
+def _get_plt():
+    """Import matplotlib only when plotting is actually requested."""
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError as exc:
+        raise ImportError(
+            "Plotting requires matplotlib. "
+            "Install it with: pip install 'cmpl[viz]'"
+        ) from exc
+
+    return plt
+
+
 torch.set_grad_enabled(True)
+
 
 def t2_star_two_parametric_2D(TE_all, images, num_iterations=10000, initial_lr=0.01, lr_decay_factor=0.1, patience=100, initial_T2_star=20.0):
     """
@@ -81,6 +95,8 @@ def t2_star_two_parametric_2D(TE_all, images, num_iterations=10000, initial_lr=0
     S0_map = S0_map.detach().cpu().numpy()
 
     # Plot the loss values over iterations
+    plt = _get_plt()
+
     plt.figure(figsize=(10, 6))
     plt.plot(loss_values, label='Loss')
     plt.xlabel('Iteration')
@@ -189,6 +205,8 @@ def t2_star_three_parametric_2D(TE_all, images, num_iterations=10000, initial_lr
     C_map = C_map.detach().cpu().numpy()
 
     # Plot the loss values over iterations
+    plt = _get_plt()
+
     plt.figure(figsize=(10, 6))
     plt.plot(loss_values, label='Loss')
     plt.xlabel('Iteration')
@@ -343,6 +361,8 @@ def t2_star_two_parametric_3D(TE_all, images, num_iterations=10000, initial_lr=0
 
     # Plot the loss values over iterations
     if plot_error:
+        plt = _get_plt()
+
         plt.figure(figsize=(10, 6))
         plt.plot(loss_values, label='Loss')
         plt.xlabel('Iteration')
@@ -452,6 +472,7 @@ def t2_star_three_parametric_3D(TE_all, images, num_iterations=10000, initial_lr
     S0_map = S0_map.detach().cpu().numpy()
 
     # Plot the loss values over iterations
+    plt = _get_plt()
     plt.figure(figsize=(10, 6))
     plt.plot(loss_values, label='Loss')
     plt.xlabel('Iteration')
@@ -679,11 +700,6 @@ def t2_star_two_parametric_3D_voxelmask(
       - Masking is applied by setting pred=signal on excluded echoes (zero residual there),
         which works for residual-based losses.
     """
-    import torch
-    import numpy as np
-    from tqdm import tqdm
-    import matplotlib.pyplot as plt
-
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -787,6 +803,7 @@ def t2_star_two_parametric_3D_voxelmask(
     S0_map = S0_map_t.detach().cpu().numpy()
 
     if plot_error:
+        plt = _get_plt()
         plt.figure(figsize=(10, 6))
         plt.plot(loss_values, label="Loss")
         plt.xlabel("Iteration")

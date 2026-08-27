@@ -130,3 +130,8 @@ def test_two_parameter_fit_exact_initial_model_cpu():
         rtol=1e-4,
         atol=1e-4,
     )
+
+def test_mapping_import_does_not_require_matplotlib():
+    import cmpl.quantitative_MRI.mapping
+
+    assert cmpl.quantitative_MRI.mapping is not None

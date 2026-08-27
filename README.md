@@ -1,21 +1,22 @@
 # CMPL — CMRR MRI Processing Libraries
 
-[![PyPI version](https://img.shields.io/pypi/v/cmpl.svg)](https://pypi.org/project/cmpl/)
+[![PyPI version](https://img.shields.io/pypi/v/cmpl.svg?cacheSeconds=300)](https://pypi.org/project/cmpl/)
 [![Python versions](https://img.shields.io/pypi/pyversions/cmpl.svg)](https://pypi.org/project/cmpl/)
 
-PyPI: https://pypi.org/project/cmpl/
-
-GitHub: https://github.com/ehedayati/cmpl
+**PyPI:** https://pypi.org/project/cmpl/  
+**GitHub:** https://github.com/ehedayati/cmpl
 
 CMPL is a Python package for MRI processing workflows developed at CMRR. It provides tools for MRI reconstruction, quantitative MRI, visualization, DICOM/NIfTI conversion and I/O, and supporting numerical and data utilities.
 
-CMPL is organized as a modular library: the base installation stays lightweight, while larger or domain-specific dependencies are installed only when the corresponding functionality is needed.
+The package is modular by design: the base installation remains lightweight, while larger or domain-specific dependencies are installed only when the corresponding functionality is needed.
 
 ## Highlights
 
-- Direct, geometry-aware conventional and Enhanced DICOM to NIfTI conversion with JSON metadata sidecars
-- Multi-echo DICOM support, including 4D NIfTI output ordered by echo time
+- Geometry-aware conventional and Enhanced DICOM to NIfTI conversion
+- JSON metadata sidecars with acquisition and source-geometry information
+- Multi-echo DICOM support with 4D NIfTI output ordered by echo time
 - Packaged `cmpl-dicom-to-nifti` command-line converter
+- Packaged `cmpl-t2star` command-line T2* and S0 mapper
 - DICOM geometry and acquisition-metadata utilities
 - Parallel MRI reconstruction with 1D/2D GRAPPA and conjugate-gradient SENSE
 - Quantitative MRI tools for T2* fitting, signal reconstruction, and fitting-error analysis
@@ -23,7 +24,7 @@ CMPL is organized as a modular library: the base installation stays lightweight,
 - Conventional and Enhanced DICOM, NIfTI, HDF5, and SimpleITK utilities
 - Lightweight numerical utilities shared across CMPL
 - Optional pandas-based indexing for CMPL-style medical-data directory structures
-- Lazy package imports so `import cmpl` does not eagerly load large optional dependencies
+- Lazy imports so unrelated optional dependencies are not loaded unnecessarily
 - Convenient aliases such as `cmpl.recon`, `cmpl.qmr`, `cmpl.vis`, and `cmpl.io`
 
 ## Requirements
@@ -35,7 +36,7 @@ CMPL requires:
 - SciPy >= 1.13, < 2
 - tqdm >= 4.66
 
-Additional dependencies are installed through optional extras.
+Additional functionality is provided through optional dependency groups.
 
 ## Installation
 
@@ -53,23 +54,29 @@ Install only the functionality you need:
 | `data` | pandas-based data indexing |
 | `viz` | Matplotlib and Jupyter visualization |
 | `torch` | PyTorch-based reconstruction and quantitative MRI |
-| `all` | All optional functionality declared by CMPL |
+| `all` | All optional CMPL functionality |
 | `dev` | Testing, linting, build, and release tools |
 
 Examples:
 
 ```bash
 python -m pip install "cmpl[io]"
-python -m pip install "cmpl[viz]"
 python -m pip install "cmpl[torch]"
-python -m pip install "cmpl[io,data,viz,torch]"
+python -m pip install "cmpl[viz]"
+python -m pip install "cmpl[io,torch]"
 python -m pip install "cmpl[all]"
 ```
 
-Quantitative-MRI fitting currently uses both PyTorch and Matplotlib, so for qMRI workflows install:
+For NIfTI-based T2* mapping:
 
 ```bash
-python -m pip install "cmpl[torch,viz]"
+python -m pip install "cmpl[io,torch]"
+```
+
+Matplotlib is only required when plotting is explicitly requested:
+
+```bash
+python -m pip install "cmpl[viz]"
 ```
 
 ## Quick start
@@ -91,7 +98,9 @@ cmpl.dicom   # DICOM metadata and geometry utilities
 cmpl.utils   # utilities
 ```
 
-The aliases are resolved lazily, so importing CMPL itself does not require every optional dependency to be loaded.
+These aliases are resolved lazily so `import cmpl` does not require every optional dependency to be installed or imported.
+
+---
 
 ## DICOM and NIfTI I/O
 
@@ -101,9 +110,18 @@ Install the I/O extra:
 python -m pip install "cmpl[io]"
 ```
 
-### Convert a DICOM series directly to NIfTI
+### Convert a DICOM series to NIfTI
 
-CMPL includes direct DICOM-series to NIfTI conversion for both conventional and Enhanced DICOM. The converter detects the DICOM representation automatically, preserves spatial geometry, supports single- and multi-echo acquisitions, writes the NIfTI image, and creates a matching JSON sidecar containing acquisition metadata and source geometry.
+CMPL supports direct conversion of both conventional and Enhanced DICOM series to NIfTI.
+
+The converter:
+
+- detects the DICOM representation automatically
+- preserves spatial geometry
+- supports single-echo and multi-echo acquisitions
+- writes a NIfTI image
+- writes a matching JSON metadata sidecar
+- orders multi-echo volumes by echo time
 
 ```python
 import cmpl
@@ -121,20 +139,26 @@ output.nii.gz
 output.json
 ```
 
-If the output path does not end in `.nii` or `.nii.gz`, CMPL appends `.nii.gz` automatically.
+If the output path does not end in `.nii` or `.nii.gz`, CMPL appends `.nii.gz`.
 
-For a single echo, the output is a 3D image. When multiple echoes are present, CMPL groups volumes by DICOM `EchoTime`, orders them by echo time, and writes a 4D NIfTI image.
+For a single echo, the output is a 3D image. For a multi-echo acquisition, CMPL writes a 4D NIfTI with echoes in the last dimension:
 
-The JSON sidecar includes:
+```text
+x, y, z, echo
+```
 
-- selected acquisition metadata
-- echo time or echo times in milliseconds
-- original DICOM slice-plane geometry in LPS coordinates
-- the SimpleITK image size, origin, spacing, and direction used for conversion
+The matching JSON sidecar contains acquisition metadata and source-geometry information. For multi-echo data, echo times are stored in milliseconds under:
 
-The returned value is the same metadata dictionary written to the JSON sidecar.
+```json
+{
+  "Acquisition": {
+    "EchoTimes": [2.5, 5.0, 7.5, 10.0],
+    "TimeUnit": "ms"
+  }
+}
+```
 
-If a directory contains multiple DICOM series, a specific `SeriesInstanceUID` can be selected:
+If a directory contains multiple DICOM series, select a specific `SeriesInstanceUID`:
 
 ```python
 metadata = cmpl.io.dicom_to_nifti(
@@ -146,10 +170,10 @@ metadata = cmpl.io.dicom_to_nifti(
 
 ### Command-line DICOM conversion
 
-Installing the I/O extra also installs the `cmpl-dicom-to-nifti` command:
+The I/O extra installs:
 
-```bash
-python -m pip install "cmpl[io]"
+```text
+cmpl-dicom-to-nifti
 ```
 
 Convert a DICOM series with automatic conventional/Enhanced-DICOM detection:
@@ -158,20 +182,20 @@ Convert a DICOM series with automatic conventional/Enhanced-DICOM detection:
 cmpl-dicom-to-nifti /path/to/dicom_series
 ```
 
-The same CLI can also be invoked as a Python module:
+The same CLI can be invoked as a Python module:
 
 ```bash
 python -m cmpl.cli.dicom_to_nifti /path/to/dicom_series
 ```
 
-If the output path is omitted, CMPL writes the NIfTI image and JSON sidecar to the current directory using the DICOM directory name:
+If the output path is omitted, CMPL writes the NIfTI and JSON sidecar to the current directory using the DICOM directory name:
 
 ```text
 ./<series_directory_name>.nii.gz
 ./<series_directory_name>.json
 ```
 
-An explicit output path can also be supplied:
+Specify an explicit output path if needed:
 
 ```bash
 cmpl-dicom-to-nifti \
@@ -185,7 +209,7 @@ Progress output is enabled by default. Disable it with:
 cmpl-dicom-to-nifti /path/to/dicom_series --no-verbose
 ```
 
-The same CLI handles conventional single-frame DICOM series and Enhanced multi-frame DICOM series. For multi-echo data, echo volumes are ordered by EchoTime and written as a 4D NIfTI image.
+The same command handles conventional single-frame DICOM and Enhanced multi-frame DICOM.
 
 ### Read a NIfTI file
 
@@ -207,6 +231,20 @@ updated = update_nifti_data(
 )
 ```
 
+### Save a scalar map using reference NIfTI geometry
+
+```python
+from cmpl.utilities.io import save_scalar_map_like
+
+save_scalar_map_like(
+    reference_image,
+    scalar_map,
+    "map.nii.gz",
+)
+```
+
+This is useful for quantitative maps such as T2* and S0 because the spatial geometry of the source NIfTI is preserved.
+
 ### Load a DICOM directory as a NumPy array
 
 ```python
@@ -218,7 +256,7 @@ volume = load_dicom_scan_from_dir(
 )
 ```
 
-For multi-echo data, the loader can return data arranged as:
+For multi-echo data, the loader can return:
 
 ```text
 x, y, z, echo
@@ -234,7 +272,7 @@ from cmpl.utilities.io import dicom_to_SimpleITK
 image = dicom_to_SimpleITK("/path/to/dicom_directory")
 ```
 
-The returned image is 3D for a single echo and 4D when multiple echoes are detected.
+The returned image is 3D for single-echo data and 4D when multiple echoes are detected.
 
 ### Write a SimpleITK image as NIfTI
 
@@ -261,7 +299,7 @@ geometry = extract_slice_geometry("slice001.dcm")
 position = get_slice_position("slice001.dcm")
 ```
 
-Enhanced-DICOM helpers remain available as well:
+Enhanced-DICOM helpers are also available:
 
 ```python
 from cmpl.dicom.enhanced_dicom import (
@@ -273,6 +311,210 @@ from cmpl.dicom.enhanced_dicom import (
 details = voxel_sizes_detailed(dataset)
 ```
 
+---
+
+## Quantitative MRI
+
+Quantitative MRI functionality is available under:
+
+```python
+cmpl.qmr
+```
+
+Install PyTorch support:
+
+```bash
+python -m pip install "cmpl[torch]"
+```
+
+For NIfTI-based quantitative MRI workflows:
+
+```bash
+python -m pip install "cmpl[io,torch]"
+```
+
+### Signal model
+
+The current two-parameter T2* implementation uses the mono-exponential signal model:
+
+```text
+S(TE) = S0 * exp(-TE / T2*)
+```
+
+where:
+
+- `S0` is the extrapolated signal at TE = 0
+- `T2*` is the transverse relaxation time
+- TE and T2* must use the same time unit
+
+CMPL conventionally uses milliseconds for T2* workflows.
+
+### Fit a 3D two-parameter T2* model
+
+```python
+from cmpl.quantitative_MRI import t2_star_two_parametric_3D
+
+result = t2_star_two_parametric_3D(
+    echo_times,
+    images,
+    num_iterations=1000,
+    initial_lr=0.01,
+    initial_T2_star=20.0,
+    plot_error=False,
+    device="cpu",
+)
+
+t2_star_map = result["T2_star_map"]
+s0_map = result["S0_map"]
+```
+
+The expected image layout is:
+
+```text
+x, y, z, echo
+```
+
+If CUDA is available and no device is supplied, the fitter can select CUDA automatically.
+
+### Command-line 3D T2* mapping
+
+CMPL includes a command-line interface for calculating T2* and S0 maps directly from a 4D multi-echo NIfTI file and its JSON metadata sidecar.
+
+Install the required dependencies:
+
+```bash
+python -m pip install "cmpl[io,torch]"
+```
+
+Given:
+
+```text
+multi_echo.nii.gz
+multi_echo.json
+```
+
+run:
+
+```bash
+cmpl-t2star multi_echo.nii.gz
+```
+
+The JSON sidecar is detected automatically when it has the same basename as the NIfTI file.
+
+The CLI reads echo times from:
+
+```json
+{
+  "Acquisition": {
+    "EchoTimes": [2.5, 5.0, 7.5, 10.0],
+    "TimeUnit": "ms"
+  }
+}
+```
+
+The input NIfTI must be 4D:
+
+```text
+x, y, z, echo
+```
+
+and the number of entries in `EchoTimes` must match the number of volumes in the fourth dimension.
+
+The command writes:
+
+```text
+multi_echo_T2star.nii.gz
+multi_echo_S0.nii.gz
+```
+
+The T2* map is written in milliseconds. The S0 map retains the signal-intensity units of the input data. Output maps preserve the spatial geometry of the source NIfTI.
+
+Specify a different JSON file:
+
+```bash
+cmpl-t2star multi_echo.nii.gz \
+    --json metadata.json
+```
+
+Specify a custom output prefix:
+
+```bash
+cmpl-t2star multi_echo.nii.gz \
+    -o results/subject01
+```
+
+This creates:
+
+```text
+results/subject01_T2star.nii.gz
+results/subject01_S0.nii.gz
+```
+
+Request CUDA explicitly:
+
+```bash
+cmpl-t2star multi_echo.nii.gz --device cuda
+```
+
+If no device is specified, CMPL uses CUDA when available and otherwise uses CPU.
+
+Optimization settings can also be adjusted:
+
+```bash
+cmpl-t2star multi_echo.nii.gz \
+    --device cuda \
+    --iterations 10000 \
+    --lr 0.01 \
+    --initial-t2star 20
+```
+
+If echo times are present but not ordered, the CLI sorts the echo times and their corresponding NIfTI volumes together before fitting.
+
+### Reconstruct a multi-echo signal from T2* and S0 maps
+
+```python
+import numpy as np
+
+from cmpl.quantitative_MRI import reconstruct_images
+
+t2_star = np.full((64, 64, 8), 20.0, dtype=np.float32)
+s0 = np.full((64, 64, 8), 100.0, dtype=np.float32)
+echo_times = np.array(
+    [0.0, 5.0, 10.0, 15.0],
+    dtype=np.float32,
+)
+
+images = reconstruct_images(
+    t2_star,
+    s0,
+    echo_times,
+    device="cpu",
+    return_numpy=True,
+)
+
+print(images.shape)
+# (64, 64, 8, 4)
+```
+
+### Calculate normalized fitting error
+
+```python
+from cmpl.quantitative_MRI import calculate_rmse_percentage_s0
+
+rmse_pct, rse_pct = calculate_rmse_percentage_s0(
+    original_images,
+    reconstructed_images,
+    s0_map,
+    return_numpy=True,
+)
+```
+
+CMPL also contains additional 2D/3D T2* fitting functions.
+
+Plotting is optional. Matplotlib is imported only when plotting is requested.
+
+---
+
 ## Reconstruction
 
 Reconstruction functionality is available under:
@@ -281,7 +523,7 @@ Reconstruction functionality is available under:
 cmpl.recon
 ```
 
-PyTorch is required for the current reconstruction implementations:
+Install PyTorch support:
 
 ```bash
 python -m pip install "cmpl[torch]"
@@ -301,7 +543,7 @@ reconstructed_kspace = grappa_1d_recon(
 )
 ```
 
-`calibration_kspace` and `undersampled_kspace` are expected to contain coil-resolved k-space data. The current implementation uses the ordering:
+The current implementation expects coil-resolved k-space in the order:
 
 ```text
 frequency, phase, slice, coils
@@ -333,84 +575,7 @@ reconstructed_image = CG_sense_2D(
 
 Inputs to the current SENSE implementation are PyTorch tensors.
 
-## Quantitative MRI
-
-Quantitative MRI functionality is available under:
-
-```python
-cmpl.qmr
-```
-
-Install the PyTorch and visualization dependencies:
-
-```bash
-python -m pip install "cmpl[torch,viz]"
-```
-
-### Reconstruct a multi-echo signal from T2* and S0 maps
-
-```python
-import numpy as np
-
-from cmpl.quantitative_MRI import reconstruct_images
-
-t2_star = np.full((64, 64, 8), 20.0, dtype=np.float32)
-s0 = np.full((64, 64, 8), 100.0, dtype=np.float32)
-echo_times = np.array([0.0, 5.0, 10.0, 15.0], dtype=np.float32)
-
-images = reconstruct_images(
-    t2_star,
-    s0,
-    echo_times,
-    device="cpu",
-    return_numpy=True,
-)
-
-print(images.shape)
-# (64, 64, 8, 4)
-```
-
-The signal model is:
-
-```text
-S(TE) = S0 * exp(-TE / T2*)
-```
-
-### Fit a 3D two-parameter T2* model
-
-```python
-from cmpl.quantitative_MRI import t2_star_two_parametric_3D
-
-result = t2_star_two_parametric_3D(
-    echo_times,
-    images,
-    num_iterations=1000,
-    initial_lr=0.01,
-    initial_T2_star=20.0,
-    plot_error=False,
-    device="cpu",
-)
-
-t2_star_map = result["T2_star_map"]
-s0_map = result["S0_map"]
-```
-
-If CUDA is available and no device is supplied, the function can select a CUDA device automatically. CUDA usage can significantly accelerate fitting.
-
-### Calculate normalized fitting error
-
-```python
-from cmpl.quantitative_MRI import calculate_rmse_percentage_s0
-
-rmse_pct, rse_pct = calculate_rmse_percentage_s0(
-    original_images,
-    reconstructed_images,
-    s0_map,
-    return_numpy=True,
-)
-```
-
-CMPL also contains two- and three-parameter 2D/3D T2* fitting functions.
+---
 
 ## Visualization
 
@@ -452,9 +617,11 @@ side_by_side_view(
 )
 ```
 
+---
+
 ## Numerical utilities
 
-Lightweight numerical helpers are kept separate from heavier I/O modules so visualization and other numerical workflows do not require unrelated optional dependencies.
+Lightweight numerical helpers are kept separate from heavier I/O modules.
 
 ```python
 from cmpl.utilities.numerical import resize_matrix
@@ -465,15 +632,17 @@ resized = resize_matrix(
 )
 ```
 
-`resize_matrix` accepts NumPy arrays and PyTorch tensors. PyTorch is imported at runtime only when a Torch tensor is actually passed to the function.
+`resize_matrix` accepts NumPy arrays and PyTorch tensors. PyTorch is imported only when a Torch tensor is actually passed.
 
-For backward compatibility, older imports such as:
+For backward compatibility:
 
 ```python
 from cmpl.utilities.utils import resize_matrix
 ```
 
-continue to work.
+continues to work.
+
+---
 
 ## Data indexing
 
@@ -483,7 +652,7 @@ Install the data extra:
 python -m pip install "cmpl[data]"
 ```
 
-CMPL includes a pandas-based utility for indexing a directory tree that follows the CMPL medical-data convention:
+CMPL includes a pandas-based utility for indexing directory trees that follow the CMPL medical-data convention:
 
 ```python
 from cmpl.utilities.df_build import build_medical_data_frame
@@ -491,7 +660,7 @@ from cmpl.utilities.df_build import build_medical_data_frame
 df = build_medical_data_frame("/path/to/root")
 ```
 
-The utility is designed around a structure such as:
+The expected structure is similar to:
 
 ```text
 root/
@@ -504,11 +673,13 @@ root/
     └── ...
 ```
 
-This utility is convention-specific rather than a general filesystem indexer.
+This utility is convention-specific rather than a general-purpose filesystem indexer.
+
+---
 
 ## Lazy loading and optional dependencies
 
-CMPL is designed so that unrelated optional packages are not imported simply because the top-level package is imported.
+CMPL is designed so unrelated optional packages are not imported simply because the top-level package is imported.
 
 For example:
 
@@ -518,7 +689,11 @@ import cmpl
 
 does not immediately import PyTorch, Matplotlib, pandas, nibabel, pydicom, SimpleITK, h5py, or the Jupyter visualization stack.
 
-Optional functionality is loaded when its corresponding module or function is accessed. This keeps startup lightweight and allows users to install only the dependencies required for their workflow.
+Optional functionality is loaded only when the corresponding module or function is accessed.
+
+Within quantitative MRI, Matplotlib is also loaded lazily: non-plotting T2* workflows do not require Matplotlib.
+
+---
 
 ## Development
 
@@ -528,35 +703,54 @@ Clone the project and install it in editable mode with development dependencies:
 python -m pip install -e ".[dev]"
 ```
 
-For development across the currently tested major feature groups:
+For development across the main optional feature groups:
 
 ```bash
 python -m pip install -e ".[dev,io,data,viz,torch]"
 ```
 
-Run the test suite:
+Run the full test suite:
 
 ```bash
 python -m pytest tests/ -v
 ```
 
-The test suite includes:
+The test suite covers:
 
-- lazy-import and dependency-boundary tests
-- qMRI numerical tests
-- GRAPPA and SENSE reconstruction tests
+- lazy-import and dependency-boundary behavior
+- qMRI numerical fitting
+- T2* CLI validation and NIfTI output
+- GRAPPA and SENSE reconstruction
 - visualization smoke tests
-- synthetic NIfTI, DICOM, and SimpleITK I/O tests
-- conventional and Enhanced multi-echo DICOM-to-NIfTI conversion and JSON-sidecar tests
-- DICOM geometry and metadata tests
-- data-indexing tests
+- synthetic NIfTI, DICOM, and SimpleITK I/O
+- conventional and Enhanced multi-echo DICOM-to-NIfTI conversion
+- JSON sidecar generation
+- DICOM geometry and metadata
+- data indexing
 
 ### Build the package
 
+Build distributions:
+
 ```bash
+rm -rf build dist *.egg-info
 python -m build
+```
+
+Validate them:
+
+```bash
 python -m twine check dist/*
 ```
+
+Before publishing, it is also useful to install the built wheel into a clean environment and verify the packaged CLI commands:
+
+```bash
+cmpl-dicom-to-nifti --help
+cmpl-t2star --help
+```
+
+---
 
 ## Package layout
 
@@ -564,7 +758,9 @@ python -m twine check dist/*
 src/cmpl/
 ├── _version.py
 ├── cli/
-│   └── dicom_to_nifti.py
+│   ├── __init__.py
+│   ├── dicom_to_nifti.py
+│   └── t2star.py
 ├── dicom/
 │   ├── enhanced_dicom.py
 │   ├── geometry.py
@@ -586,6 +782,8 @@ src/cmpl/
 └── visualization/
     └── visualization.py
 ```
+
+---
 
 ## License
 
