@@ -137,6 +137,318 @@ def test_update_nifti_data_rejects_wrong_shape(tmp_path):
         )
 
 
+def test_update_nifti_data_preserves_nifti2_class(tmp_path):
+    """Verify that NIfTI-2 input remains NIfTI-2 after replacement."""
+
+    from cmpl.utilities.io import update_nifti_data
+
+    data = np.zeros((3, 4, 5), dtype=np.float32)
+    input_path = tmp_path / "input_nifti2.nii.gz"
+    output_path = tmp_path / "output_nifti2.nii.gz"
+
+    nib.save(
+        nib.Nifti2Image(data, np.eye(4)),
+        input_path,
+    )
+
+    update_nifti_data(
+        input_path,
+        np.ones_like(data),
+        output_path=output_path,
+    )
+
+    result = nib.load(output_path)
+
+    assert isinstance(result, nib.Nifti2Image)
+
+
+def test_update_nifti_data_preserves_qform_and_sform(tmp_path):
+    """Verify that qform/sform matrices and codes are retained exactly."""
+
+    from cmpl.utilities.io import update_nifti_data
+
+    data = np.zeros((3, 4, 5), dtype=np.float32)
+
+    qform = np.array(
+        [
+            [1.5, 0.0, 0.0, 11.0],
+            [0.0, 1.5, 0.0, 12.0],
+            [0.0, 0.0, 2.0, 13.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ]
+    )
+
+    sform = np.array(
+        [
+            [2.0, 0.0, 0.0, 21.0],
+            [0.0, 2.0, 0.0, 22.0],
+            [0.0, 0.0, 2.5, 23.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ]
+    )
+
+    image = nib.Nifti1Image(data, sform)
+    image.set_qform(qform, code=1)
+    image.set_sform(sform, code=4)
+
+    input_path = tmp_path / "input.nii.gz"
+    output_path = tmp_path / "output.nii.gz"
+    nib.save(image, input_path)
+
+    update_nifti_data(
+        input_path,
+        np.ones_like(data),
+        output_path=output_path,
+    )
+
+    result = nib.load(output_path)
+    result_qform, result_qcode = result.get_qform(coded=True)
+    result_sform, result_scode = result.get_sform(coded=True)
+
+    np.testing.assert_allclose(result_qform, qform)
+    np.testing.assert_allclose(result_sform, sform)
+    assert int(result_qcode) == 1
+    assert int(result_scode) == 4
+
+
+def test_update_nifti_data_preserves_zero_transform_codes(tmp_path):
+    """Verify that unset qform/sform codes are not promoted on output."""
+
+    from cmpl.utilities.io import update_nifti_data
+
+    data = np.zeros((3, 4, 5), dtype=np.float32)
+    image = nib.Nifti1Image(data, np.eye(4))
+    image.set_qform(np.eye(4), code=0)
+    image.set_sform(np.eye(4), code=0)
+
+    input_path = tmp_path / "input.nii"
+    output_path = tmp_path / "output.nii"
+    nib.save(image, input_path)
+
+    update_nifti_data(
+        input_path,
+        np.ones_like(data),
+        output_path=output_path,
+    )
+
+    result = nib.load(output_path)
+
+    assert int(result.header["qform_code"]) == 0
+    assert int(result.header["sform_code"]) == 0
+
+
+def test_update_nifti_data_preserves_header_metadata(tmp_path):
+    """Verify representative header fields and extensions survive."""
+
+    from cmpl.utilities.io import update_nifti_data
+
+    data = np.zeros((3, 4, 5), dtype=np.float32)
+    image = nib.Nifti1Image(data, np.eye(4))
+
+    image.header["descrip"] = b"CMPL metadata test"
+    image.header["aux_file"] = b"reference"
+    image.header.set_xyzt_units("mm", "sec")
+    image.header.extensions.append(
+        nib.nifti1.Nifti1Extension(6, b"cmpl-extension")
+    )
+
+    input_path = tmp_path / "input.nii"
+    output_path = tmp_path / "output.nii"
+    nib.save(image, input_path)
+
+    update_nifti_data(
+        input_path,
+        np.ones_like(data),
+        output_path=output_path,
+    )
+
+    result = nib.load(output_path)
+
+    assert bytes(result.header["descrip"]).rstrip(b"\x00") == b"CMPL metadata test"
+    assert bytes(result.header["aux_file"]).rstrip(b"\x00") == b"reference"
+    assert result.header.get_xyzt_units() == ("mm", "sec")
+    assert len(result.header.extensions) == 1
+    assert result.header.extensions[0].get_content() == b"cmpl-extension"
+
+
+def test_update_nifti_data_does_not_inherit_intensity_scaling(tmp_path):
+    """Verify replacement values are not transformed by source scaling."""
+
+    from cmpl.utilities.io import update_nifti_data
+
+    source = np.zeros((3, 4, 5), dtype=np.int16)
+    image = nib.Nifti1Image(source, np.eye(4))
+    image.header.set_slope_inter(2.0, 10.0)
+
+    input_path = tmp_path / "scaled_input.nii.gz"
+    output_path = tmp_path / "output.nii.gz"
+    nib.save(image, input_path)
+
+    new_data = np.full(source.shape, 3.25, dtype=np.float32)
+
+    update_nifti_data(
+        input_path,
+        new_data,
+        output_path=output_path,
+    )
+
+    result = nib.load(output_path)
+
+    np.testing.assert_allclose(result.get_fdata(), new_data)
+
+
+def test_update_nifti_data_defaults_to_float32(tmp_path):
+    """Verify backward-compatible float32 output remains the default."""
+
+    from cmpl.utilities.io import update_nifti_data
+
+    source = np.zeros((3, 4, 5), dtype=np.int16)
+    new_data = np.full(source.shape, 1.75, dtype=np.float64)
+
+    input_path = tmp_path / "input.nii.gz"
+    output_path = tmp_path / "output.nii.gz"
+    nib.save(nib.Nifti1Image(source, np.eye(4)), input_path)
+
+    update_nifti_data(
+        input_path,
+        new_data,
+        output_path=output_path,
+    )
+
+    result = nib.load(output_path)
+
+    assert result.get_data_dtype() == np.dtype(np.float32)
+    np.testing.assert_allclose(result.get_fdata(), new_data)
+
+
+def test_update_nifti_data_dtype_none_preserves_source_dtype(tmp_path):
+    """Verify dtype=None opts into the reference image dtype."""
+
+    from cmpl.utilities.io import update_nifti_data
+
+    source = np.zeros((3, 4, 5), dtype=np.int16)
+    new_data = np.full(source.shape, 7, dtype=np.int32)
+
+    input_path = tmp_path / "input.nii.gz"
+    output_path = tmp_path / "output.nii.gz"
+    nib.save(nib.Nifti1Image(source, np.eye(4)), input_path)
+
+    update_nifti_data(
+        input_path,
+        new_data,
+        output_path=output_path,
+        dtype=None,
+    )
+
+    result = nib.load(output_path)
+
+    assert result.get_data_dtype() == np.dtype(np.int16)
+    np.testing.assert_array_equal(result.get_fdata(), new_data)
+
+
+@pytest.mark.parametrize("compression_level", [0, 1, 9])
+def test_update_nifti_data_compression_levels(tmp_path, compression_level):
+    """Verify supported gzip levels produce readable NIfTI files."""
+
+    from cmpl.utilities.io import update_nifti_data
+
+    data = np.arange(3 * 4 * 5, dtype=np.float32).reshape(3, 4, 5)
+    input_path = tmp_path / "input.nii.gz"
+    output_path = tmp_path / f"output_{compression_level}.nii.gz"
+    nib.save(nib.Nifti1Image(np.zeros_like(data), np.eye(4)), input_path)
+
+    update_nifti_data(
+        input_path,
+        data,
+        output_path=output_path,
+        compression_level=compression_level,
+    )
+
+    result = nib.load(output_path)
+    np.testing.assert_allclose(result.get_fdata(), data)
+
+
+def test_update_nifti_data_accepts_numpy_integer_compression_level(tmp_path):
+    """Verify NumPy integer compression levels are accepted."""
+
+    from cmpl.utilities.io import update_nifti_data
+
+    data = np.zeros((3, 4, 5), dtype=np.float32)
+    input_path = tmp_path / "input.nii.gz"
+    output_path = tmp_path / "output.nii.gz"
+    nib.save(nib.Nifti1Image(data, np.eye(4)), input_path)
+
+    update_nifti_data(
+        input_path,
+        data,
+        output_path=output_path,
+        compression_level=np.int64(1),
+    )
+
+    assert output_path.exists()
+
+
+@pytest.mark.parametrize("compression_level", [-1, 10])
+def test_update_nifti_data_rejects_invalid_compression_level(
+    tmp_path,
+    compression_level,
+):
+    """Verify gzip levels outside 0..9 are rejected."""
+
+    from cmpl.utilities.io import update_nifti_data
+
+    data = np.zeros((3, 4, 5), dtype=np.float32)
+    input_path = tmp_path / "input.nii.gz"
+    nib.save(nib.Nifti1Image(data, np.eye(4)), input_path)
+
+    with pytest.raises(ValueError):
+        update_nifti_data(
+            input_path,
+            data,
+            compression_level=compression_level,
+        )
+
+
+@pytest.mark.parametrize("compression_level", [1.5, "9", True])
+def test_update_nifti_data_rejects_non_integer_compression_level(
+    tmp_path,
+    compression_level,
+):
+    """Verify gzip compression level must be an actual integer."""
+
+    from cmpl.utilities.io import update_nifti_data
+
+    data = np.zeros((3, 4, 5), dtype=np.float32)
+    input_path = tmp_path / "input.nii.gz"
+    nib.save(nib.Nifti1Image(data, np.eye(4)), input_path)
+
+    with pytest.raises(TypeError):
+        update_nifti_data(
+            input_path,
+            data,
+            compression_level=compression_level,
+        )
+
+
+def test_update_nifti_data_overwrites_gzip_in_place(tmp_path):
+    """Verify a .nii.gz reference can be safely updated in place."""
+
+    from cmpl.utilities.io import update_nifti_data
+
+    original = np.zeros((3, 4, 5), dtype=np.float32)
+    replacement = np.full(original.shape, 13.0, dtype=np.float32)
+    input_path = tmp_path / "input.nii.gz"
+    nib.save(nib.Nifti1Image(original, np.eye(4)), input_path)
+
+    update_nifti_data(
+        input_path,
+        replacement,
+    )
+
+    result = nib.load(input_path)
+    np.testing.assert_allclose(result.get_fdata(), replacement)
+
+
 def test_save_scalar_map_like(tmp_path):
     """
     Verify that a scalar map is saved using the reference image geometry.

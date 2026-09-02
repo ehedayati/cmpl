@@ -218,6 +218,13 @@ from cmpl.utilities.io import nifti_read
 
 nifti_image, data = nifti_read("image.nii.gz")
 ```
+By default, updated voxel data is written as `float32`, matching CMPL's
+previous behavior. Use `dtype=None` to preserve the reference NIfTI data
+type, or pass an explicit NumPy dtype. For `.nii.gz` output, gzip compression
+can be controlled with `compression_level=0` through `9` (default `9`).
+
+The function preserves the reference NIfTI image class, affine, qform/sform
+transforms and codes, and header metadata while replacing only the voxel data.
 
 ### Replace NIfTI data while preserving geometry
 

@@ -1,10 +1,15 @@
 # File created by: Eisa Hedayati
 # Date: 8/27/2024
 # Description: This file is developed at CMRR
+import gzip
 import json
 import os
+import shutil
+import tempfile
 import warnings
 from collections import defaultdict
+from numbers import Integral
+from pathlib import Path
 
 import nibabel as nib
 import numpy as np
@@ -282,48 +287,153 @@ def load_dicom_scan_from_dir(directory, reshape=True, verbose=False, with_spacin
     else:
         return image_data
 
-def update_nifti_data(file_path, new_data, output_path=None, dtype=np.float32):
+def update_nifti_data(
+    file_path,
+    new_data,
+    output_path=None,
+    dtype=np.float32,
+    compression_level=9,
+):
     """
-    Replace the data of a NIfTI file while preserving geometry and metadata safely.
+    Replace NIfTI voxel data while preserving image geometry and metadata.
+
+    Parameters
+    ----------
+    file_path : str or Path
+        Reference NIfTI file.
+
+    new_data : np.ndarray
+        New image data. Its shape must match the reference image exactly.
+
+    output_path : str or Path, optional
+        Output path. If None, overwrite ``file_path``.
+
+    dtype : numpy dtype or None, default=np.float32
+        Output data type. If None, preserve the reference NIfTI data type.
+
+    compression_level : int, default=9
+        Gzip compression level used for ``.nii.gz`` output.
+        Must be between 0 and 9.
+
+    Returns
+    -------
+    nibabel.spatialimages.SpatialImage
+        The updated NIfTI image object.
     """
+    file_path = Path(file_path)
 
-    # Load existing NIfTI
-    nifti = nib.load(file_path)
-
-    # Ensure numpy array
-    new_data = np.asarray(new_data)
-
-    # Shape check (recommended)
-    if new_data.shape != nifti.shape:
-        raise ValueError(
-            f"Shape mismatch: new_data {new_data.shape} != nifti {nifti.shape}"
-        )
-
-    # Copy header to avoid mutating original
-    header = nifti.header.copy()
-
-    # Reset scaling to avoid intensity bugs
-    header.set_slope_inter(None, None)
-
-    # Set dtype explicitly
-    new_data = new_data.astype(dtype)
-    header.set_data_dtype(dtype)
-
-    # Create new NIfTI
-    new_nifti = nib.Nifti1Image(
-        new_data,
-        affine=nifti.affine,
-        header=header
-    )
-
-    # Update header consistency
-    new_nifti.update_header()
-
-    # Save
     if output_path is None:
         output_path = file_path
+    else:
+        output_path = Path(output_path)
 
-    nib.save(new_nifti, output_path)
+    if (
+        not isinstance(compression_level, Integral)
+        or isinstance(compression_level, bool)
+    ):
+        raise TypeError(
+            "compression_level must be an integer between 0 and 9."
+        )
+
+    compression_level = int(compression_level)
+
+    if not 0 <= compression_level <= 9:
+        raise ValueError(
+            "compression_level must be between 0 and 9, "
+            f"got {compression_level}."
+        )
+
+    # Load reference image
+    nifti = nib.load(file_path)
+
+    new_data = np.asarray(new_data)
+
+    # New data must correspond exactly to the reference image dimensions
+    if new_data.shape != nifti.shape:
+        raise ValueError(
+            f"Shape mismatch: new_data {new_data.shape} "
+            f"!= nifti {nifti.shape}"
+        )
+
+    # Preserve source dtype only when explicitly requested
+    if dtype is None:
+        dtype = nifti.header.get_data_dtype()
+
+    dtype = np.dtype(dtype)
+    new_data = new_data.astype(dtype, copy=False)
+
+    # Preserve header metadata
+    header = nifti.header.copy()
+    header.set_data_dtype(dtype)
+
+    # Replacement data represents the actual voxel values and should not
+    # inherit scaling from the source image.
+    header.set_slope_inter(1.0, 0.0)
+
+    # Preserve transforms and their codes explicitly.
+    qform = nifti.get_qform()
+    qform_code = int(nifti.header["qform_code"])
+
+    sform = nifti.get_sform()
+    sform_code = int(nifti.header["sform_code"])
+
+    # Preserve NIfTI-1 vs NIfTI-2
+    new_nifti = nifti.__class__(
+        new_data,
+        affine=nifti.affine,
+        header=header,
+        extra=nifti.extra.copy(),
+    )
+
+    new_nifti.update_header()
+
+    # Restore transform information exactly
+    new_nifti.set_qform(qform, qform_code)
+    new_nifti.set_sform(sform, sform_code)
+
+    output_path.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    # Normal .nii output
+    if not str(output_path).lower().endswith(".nii.gz"):
+        nib.save(new_nifti, output_path)
+        return new_nifti
+
+    # NiBabel does not expose gzip compression level through nib.save().
+    # Write the NIfTI stream uncompressed first, then gzip it explicitly.
+    with tempfile.NamedTemporaryFile(
+        suffix=".nii",
+        dir=output_path.parent,
+        delete=False,
+    ) as tmp:
+        temp_nifti_path = Path(tmp.name)
+
+    try:
+        nib.save(
+            new_nifti,
+            temp_nifti_path,
+        )
+
+        with temp_nifti_path.open("rb") as src:
+            with output_path.open("wb") as raw_dst:
+                with gzip.GzipFile(
+                    filename="",
+                    mode="wb",
+                    fileobj=raw_dst,
+                    compresslevel=compression_level,
+                    mtime=0,
+                ) as dst:
+                    shutil.copyfileobj(
+                        src,
+                        dst,
+                    )
+
+    finally:
+        temp_nifti_path.unlink(
+            missing_ok=True,
+        )
 
     return new_nifti
 
