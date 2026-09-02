@@ -5,7 +5,7 @@ import numpy as np
 
 
 def test_reconstruct_images_matches_exponential_model():
-    from cmpl.quantitative_MRI import reconstruct_images
+    from mrif.quantitative_MRI import reconstruct_images
 
     t2_star = np.full((2, 3, 2), 20.0, dtype=np.float32)
     s0 = np.full((2, 3, 2), 100.0, dtype=np.float32)
@@ -35,7 +35,7 @@ def test_reconstruct_images_matches_exponential_model():
 
 
 def test_rmse_is_zero_for_perfect_reconstruction():
-    from cmpl.quantitative_MRI import (
+    from mrif.quantitative_MRI import (
         calculate_rmse_percentage_s0,
         reconstruct_images,
     )
@@ -65,7 +65,7 @@ def test_rmse_is_zero_for_perfect_reconstruction():
 
 
 def test_rmse_known_ten_percent_error():
-    from cmpl.quantitative_MRI import calculate_rmse_percentage_s0
+    from mrif.quantitative_MRI import calculate_rmse_percentage_s0
 
     s0 = np.full((2, 2), 100.0, dtype=np.float32)
 
@@ -90,7 +90,7 @@ def test_two_parameter_fit_exact_initial_model_cpu():
     and the optimizer is initialized at those exact values,
     one iteration should preserve the solution.
     """
-    from cmpl.quantitative_MRI import t2_star_two_parametric_3D
+    from mrif.quantitative_MRI import t2_star_two_parametric_3D
 
     te = np.array([0.0, 10.0, 20.0], dtype=np.float32)
 
@@ -132,6 +132,6 @@ def test_two_parameter_fit_exact_initial_model_cpu():
     )
 
 def test_mapping_import_does_not_require_matplotlib():
-    import cmpl.quantitative_MRI.mapping
+    import mrif.quantitative_MRI.mapping
 
-    assert cmpl.quantitative_MRI.mapping is not None
+    assert mrif.quantitative_MRI.mapping is not None

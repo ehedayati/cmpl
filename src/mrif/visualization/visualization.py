@@ -8,7 +8,7 @@ import numpy as np
 from ipywidgets import widgets, HBox, VBox, interactive
 from IPython.display import display
 from matplotlib.colors import ListedColormap
-from cmpl.utilities.numerical import resize_matrix
+from mrif.utilities.numerical import resize_matrix
 from typing import List, Optional
 
 

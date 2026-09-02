@@ -1,7 +1,7 @@
 # CMPL — CMRR MRI Processing Libraries
 
-[![PyPI version](https://img.shields.io/pypi/v/cmpl.svg?cacheSeconds=300)](https://pypi.org/project/cmpl/)
-[![Python versions](https://img.shields.io/pypi/pyversions/cmpl.svg)](https://pypi.org/project/cmpl/)
+[![PyPI version](https://img.shields.io/pypi/v/mrif.svg?cacheSeconds=300)](https://pypi.org/project/cmpl/)
+[![Python versions](https://img.shields.io/pypi/pyversions/mrif.svg)](https://pypi.org/project/cmpl/)
 
 **PyPI:** https://pypi.org/project/cmpl/  
 **GitHub:** https://github.com/ehedayati/cmpl
@@ -15,8 +15,8 @@ The package is modular by design: the base installation remains lightweight, whi
 - Geometry-aware conventional and Enhanced DICOM to NIfTI conversion
 - JSON metadata sidecars with acquisition and source-geometry information
 - Multi-echo DICOM support with 4D NIfTI output ordered by echo time
-- Packaged `cmpl-dicom-to-nifti` command-line converter
-- Packaged `cmpl-t2star` command-line T2* and S0 mapper
+- Packaged `mriforge-dicom-to-nifti` command-line converter
+- Packaged `mriforge-t2star` command-line T2* and S0 mapper
 - DICOM geometry and acquisition-metadata utilities
 - Parallel MRI reconstruction with 1D/2D GRAPPA and conjugate-gradient SENSE
 - Quantitative MRI tools for T2* fitting, signal reconstruction, and fitting-error analysis
@@ -25,7 +25,7 @@ The package is modular by design: the base installation remains lightweight, whi
 - Lightweight numerical utilities shared across CMPL
 - Optional pandas-based indexing for CMPL-style medical-data directory structures
 - Lazy imports so unrelated optional dependencies are not loaded unnecessarily
-- Convenient aliases such as `cmpl.recon`, `cmpl.qmr`, `cmpl.vis`, and `cmpl.io`
+- Convenient aliases such as `mrif.recon`, `mrif.qmr`, `mrif.vis`, and `mrif.io`
 
 ## Requirements
 
@@ -60,23 +60,23 @@ Install only the functionality you need:
 Examples:
 
 ```bash
-python -m pip install "cmpl[io]"
-python -m pip install "cmpl[torch]"
-python -m pip install "cmpl[viz]"
-python -m pip install "cmpl[io,torch]"
-python -m pip install "cmpl[all]"
+python -m pip install "mriforge[io]"
+python -m pip install "mriforge[torch]"
+python -m pip install "mriforge[viz]"
+python -m pip install "mriforge[io,torch]"
+python -m pip install "mriforge[all]"
 ```
 
 For NIfTI-based T2* mapping:
 
 ```bash
-python -m pip install "cmpl[io,torch]"
+python -m pip install "mriforge[io,torch]"
 ```
 
 Matplotlib is only required when plotting is explicitly requested:
 
 ```bash
-python -m pip install "cmpl[viz]"
+python -m pip install "mriforge[viz]"
 ```
 
 ## Quick start
@@ -84,18 +84,18 @@ python -m pip install "cmpl[viz]"
 ```python
 import cmpl
 
-print(cmpl.__version__)
+print(mrif.__version__)
 ```
 
 CMPL exposes convenient aliases for commonly used subpackages:
 
 ```python
-cmpl.recon   # reconstruction
-cmpl.qmr     # quantitative MRI
-cmpl.vis     # visualization
-cmpl.io      # I/O utilities
-cmpl.dicom   # DICOM metadata and geometry utilities
-cmpl.utils   # utilities
+mrif.recon   # reconstruction
+mrif.qmr     # quantitative MRI
+mrif.vis     # visualization
+mrif.io      # I/O utilities
+mrif.dicom   # DICOM metadata and geometry utilities
+mrif.utils   # utilities
 ```
 
 These aliases are resolved lazily so `import cmpl` does not require every optional dependency to be installed or imported.
@@ -107,7 +107,7 @@ These aliases are resolved lazily so `import cmpl` does not require every option
 Install the I/O extra:
 
 ```bash
-python -m pip install "cmpl[io]"
+python -m pip install "mriforge[io]"
 ```
 
 ### Convert a DICOM series to NIfTI
@@ -126,7 +126,7 @@ The converter:
 ```python
 import cmpl
 
-metadata = cmpl.io.dicom_to_nifti(
+metadata = mrif.io.dicom_to_nifti(
     "/path/to/dicom_series",
     "output.nii.gz",
 )
@@ -161,7 +161,7 @@ The matching JSON sidecar contains acquisition metadata and source-geometry info
 If a directory contains multiple DICOM series, select a specific `SeriesInstanceUID`:
 
 ```python
-metadata = cmpl.io.dicom_to_nifti(
+metadata = mrif.io.dicom_to_nifti(
     "/path/to/dicom_directory",
     "output.nii.gz",
     series_id="1.2.840...",
@@ -173,19 +173,19 @@ metadata = cmpl.io.dicom_to_nifti(
 The I/O extra installs:
 
 ```text
-cmpl-dicom-to-nifti
+mriforge-dicom-to-nifti
 ```
 
 Convert a DICOM series with automatic conventional/Enhanced-DICOM detection:
 
 ```bash
-cmpl-dicom-to-nifti /path/to/dicom_series
+mriforge-dicom-to-nifti /path/to/dicom_series
 ```
 
 The same CLI can be invoked as a Python module:
 
 ```bash
-python -m cmpl.cli.dicom_to_nifti /path/to/dicom_series
+python -m mrif.cli.dicom_to_nifti /path/to/dicom_series
 ```
 
 If the output path is omitted, CMPL writes the NIfTI and JSON sidecar to the current directory using the DICOM directory name:
@@ -198,7 +198,7 @@ If the output path is omitted, CMPL writes the NIfTI and JSON sidecar to the cur
 Specify an explicit output path if needed:
 
 ```bash
-cmpl-dicom-to-nifti \
+mriforge-dicom-to-nifti \
     /path/to/dicom_series \
     /path/to/output.nii.gz
 ```
@@ -206,7 +206,7 @@ cmpl-dicom-to-nifti \
 Progress output is enabled by default. Disable it with:
 
 ```bash
-cmpl-dicom-to-nifti /path/to/dicom_series --no-verbose
+mriforge-dicom-to-nifti /path/to/dicom_series --no-verbose
 ```
 
 The same command handles conventional single-frame DICOM and Enhanced multi-frame DICOM.
@@ -214,7 +214,7 @@ The same command handles conventional single-frame DICOM and Enhanced multi-fram
 ### Read a NIfTI file
 
 ```python
-from cmpl.utilities.io import nifti_read
+from mrif.utilities.io import nifti_read
 
 nifti_image, data = nifti_read("image.nii.gz")
 ```
@@ -229,7 +229,7 @@ transforms and codes, and header metadata while replacing only the voxel data.
 ### Replace NIfTI data while preserving geometry
 
 ```python
-from cmpl.utilities.io import update_nifti_data
+from mrif.utilities.io import update_nifti_data
 
 updated = update_nifti_data(
     "reference.nii.gz",
@@ -241,7 +241,7 @@ updated = update_nifti_data(
 ### Save a scalar map using reference NIfTI geometry
 
 ```python
-from cmpl.utilities.io import save_scalar_map_like
+from mrif.utilities.io import save_scalar_map_like
 
 save_scalar_map_like(
     reference_image,
@@ -255,7 +255,7 @@ This is useful for quantitative maps such as T2* and S0 because the spatial geom
 ### Load a DICOM directory as a NumPy array
 
 ```python
-from cmpl.utilities.io import load_dicom_scan_from_dir
+from mrif.utilities.io import load_dicom_scan_from_dir
 
 volume = load_dicom_scan_from_dir(
     "/path/to/dicom_directory",
@@ -274,7 +274,7 @@ depending on the acquisition metadata and requested reshaping behavior.
 ### Read a DICOM series as SimpleITK
 
 ```python
-from cmpl.utilities.io import dicom_to_SimpleITK
+from mrif.utilities.io import dicom_to_SimpleITK
 
 image = dicom_to_SimpleITK("/path/to/dicom_directory")
 ```
@@ -284,7 +284,7 @@ The returned image is 3D for single-echo data and 4D when multiple echoes are de
 ### Write a SimpleITK image as NIfTI
 
 ```python
-from cmpl.utilities.io import itk_to_nifti
+from mrif.utilities.io import itk_to_nifti
 
 output_path = itk_to_nifti(
     image,
@@ -294,10 +294,10 @@ output_path = itk_to_nifti(
 
 ### DICOM geometry and metadata helpers
 
-CMPL separates DICOM geometry and acquisition-metadata handling into dedicated modules under `cmpl.dicom`.
+CMPL separates DICOM geometry and acquisition-metadata handling into dedicated modules under `mrif.dicom`.
 
 ```python
-from cmpl.dicom import (
+from mrif.dicom import (
     extract_slice_geometry,
     get_slice_position,
 )
@@ -309,7 +309,7 @@ position = get_slice_position("slice001.dcm")
 Enhanced-DICOM helpers are also available:
 
 ```python
-from cmpl.dicom.enhanced_dicom import (
+from mrif.dicom.enhanced_dicom import (
     get_slice_thickness,
     get_spacing_between_slices,
     voxel_sizes_detailed,
@@ -325,19 +325,19 @@ details = voxel_sizes_detailed(dataset)
 Quantitative MRI functionality is available under:
 
 ```python
-cmpl.qmr
+mrif.qmr
 ```
 
 Install PyTorch support:
 
 ```bash
-python -m pip install "cmpl[torch]"
+python -m pip install "mriforge[torch]"
 ```
 
 For NIfTI-based quantitative MRI workflows:
 
 ```bash
-python -m pip install "cmpl[io,torch]"
+python -m pip install "mriforge[io,torch]"
 ```
 
 ### Signal model
@@ -359,7 +359,7 @@ CMPL conventionally uses milliseconds for T2* workflows.
 ### Fit a 3D two-parameter T2* model
 
 ```python
-from cmpl.quantitative_MRI import t2_star_two_parametric_3D
+from mrif.quantitative_MRI import t2_star_two_parametric_3D
 
 result = t2_star_two_parametric_3D(
     echo_times,
@@ -390,7 +390,7 @@ CMPL includes a command-line interface for calculating T2* and S0 maps directly 
 Install the required dependencies:
 
 ```bash
-python -m pip install "cmpl[io,torch]"
+python -m pip install "mriforge[io,torch]"
 ```
 
 Given:
@@ -403,7 +403,7 @@ multi_echo.json
 run:
 
 ```bash
-cmpl-t2star multi_echo.nii.gz
+mriforge-t2star multi_echo.nii.gz
 ```
 
 The JSON sidecar is detected automatically when it has the same basename as the NIfTI file.
@@ -439,14 +439,14 @@ The T2* map is written in milliseconds. The S0 map retains the signal-intensity 
 Specify a different JSON file:
 
 ```bash
-cmpl-t2star multi_echo.nii.gz \
+mriforge-t2star multi_echo.nii.gz \
     --json metadata.json
 ```
 
 Specify a custom output prefix:
 
 ```bash
-cmpl-t2star multi_echo.nii.gz \
+mriforge-t2star multi_echo.nii.gz \
     -o results/subject01
 ```
 
@@ -460,7 +460,7 @@ results/subject01_S0.nii.gz
 Request CUDA explicitly:
 
 ```bash
-cmpl-t2star multi_echo.nii.gz --device cuda
+mriforge-t2star multi_echo.nii.gz --device cuda
 ```
 
 If no device is specified, CMPL uses CUDA when available and otherwise uses CPU.
@@ -468,7 +468,7 @@ If no device is specified, CMPL uses CUDA when available and otherwise uses CPU.
 Optimization settings can also be adjusted:
 
 ```bash
-cmpl-t2star multi_echo.nii.gz \
+mriforge-t2star multi_echo.nii.gz \
     --device cuda \
     --iterations 10000 \
     --lr 0.01 \
@@ -482,7 +482,7 @@ If echo times are present but not ordered, the CLI sorts the echo times and thei
 ```python
 import numpy as np
 
-from cmpl.quantitative_MRI import reconstruct_images
+from mrif.quantitative_MRI import reconstruct_images
 
 t2_star = np.full((64, 64, 8), 20.0, dtype=np.float32)
 s0 = np.full((64, 64, 8), 100.0, dtype=np.float32)
@@ -506,7 +506,7 @@ print(images.shape)
 ### Calculate normalized fitting error
 
 ```python
-from cmpl.quantitative_MRI import calculate_rmse_percentage_s0
+from mrif.quantitative_MRI import calculate_rmse_percentage_s0
 
 rmse_pct, rse_pct = calculate_rmse_percentage_s0(
     original_images,
@@ -527,19 +527,19 @@ Plotting is optional. Matplotlib is imported only when plotting is requested.
 Reconstruction functionality is available under:
 
 ```python
-cmpl.recon
+mrif.recon
 ```
 
 Install PyTorch support:
 
 ```bash
-python -m pip install "cmpl[torch]"
+python -m pip install "mriforge[torch]"
 ```
 
 ### 1D GRAPPA
 
 ```python
-from cmpl.reconstruction.grappa import grappa_1d_recon
+from mrif.reconstruction.grappa import grappa_1d_recon
 
 reconstructed_kspace = grappa_1d_recon(
     calibration_kspace,
@@ -559,7 +559,7 @@ frequency, phase, slice, coils
 ### 2D GRAPPA
 
 ```python
-from cmpl.reconstruction.grappa import grappa_2d_recon
+from mrif.reconstruction.grappa import grappa_2d_recon
 
 reconstructed_kspace = grappa_2d_recon(
     calibration_kspace,
@@ -572,7 +572,7 @@ reconstructed_kspace = grappa_2d_recon(
 ### Conjugate-gradient SENSE
 
 ```python
-from cmpl.reconstruction.sense.cg import CG_sense_2D
+from mrif.reconstruction.sense.cg import CG_sense_2D
 
 reconstructed_image = CG_sense_2D(
     undersampled_image_space,
@@ -589,13 +589,13 @@ Inputs to the current SENSE implementation are PyTorch tensors.
 Install the visualization extra:
 
 ```bash
-python -m pip install "cmpl[viz]"
+python -m pip install "mriforge[viz]"
 ```
 
 ### Browse or display a 3D MRI volume
 
 ```python
-from cmpl.visualization import plot_3D_mri
+from mrif.visualization import plot_3D_mri
 
 plot_3D_mri(
     volume,
@@ -614,7 +614,7 @@ If an interactive Matplotlib backend is available, `plot_3D_mri` can use interac
 ### Compare images side by side
 
 ```python
-from cmpl.visualization import side_by_side_view
+from mrif.visualization import side_by_side_view
 
 side_by_side_view(
     image_a,
@@ -631,7 +631,7 @@ side_by_side_view(
 Lightweight numerical helpers are kept separate from heavier I/O modules.
 
 ```python
-from cmpl.utilities.numerical import resize_matrix
+from mrif.utilities.numerical import resize_matrix
 
 resized = resize_matrix(
     image,
@@ -644,7 +644,7 @@ resized = resize_matrix(
 For backward compatibility:
 
 ```python
-from cmpl.utilities.utils import resize_matrix
+from mrif.utilities.utils import resize_matrix
 ```
 
 continues to work.
@@ -656,13 +656,13 @@ continues to work.
 Install the data extra:
 
 ```bash
-python -m pip install "cmpl[data]"
+python -m pip install "mriforge[data]"
 ```
 
 CMPL includes a pandas-based utility for indexing directory trees that follow the CMPL medical-data convention:
 
 ```python
-from cmpl.utilities.df_build import build_medical_data_frame
+from mrif.utilities.df_build import build_medical_data_frame
 
 df = build_medical_data_frame("/path/to/root")
 ```
@@ -753,8 +753,8 @@ python -m twine check dist/*
 Before publishing, it is also useful to install the built wheel into a clean environment and verify the packaged CLI commands:
 
 ```bash
-cmpl-dicom-to-nifti --help
-cmpl-t2star --help
+mriforge-dicom-to-nifti --help
+mriforge-t2star --help
 ```
 
 ---

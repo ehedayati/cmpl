@@ -10,7 +10,7 @@ def _get_plt():
     except ImportError as exc:
         raise ImportError(
             "Plotting requires matplotlib. "
-            "Install it with: pip install 'cmpl[viz]'"
+            "Install it with: pip install 'mriforge[viz]'"
         ) from exc
 
     return plt

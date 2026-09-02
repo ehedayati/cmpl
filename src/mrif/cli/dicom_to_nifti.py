@@ -1,5 +1,5 @@
 """
-Command-line interface for CMPL DICOM to NIfTI conversion.
+Command-line interface for MRIForge DICOM to NIfTI conversion.
 """
 
 import argparse
@@ -8,7 +8,7 @@ from pathlib import Path
 
 def _build_parser():
     parser = argparse.ArgumentParser(
-        prog="cmpl-dicom-to-nifti",
+        prog="mriforge-dicom-to-nifti",
         description=(
             "Convert a DICOM series to NIfTI and create a "
             "matching JSON metadata sidecar."
@@ -76,7 +76,7 @@ def main():
     # Import lazily so importing the CLI itself does not load
     # the heavier DICOM/NIfTI dependencies.
     try:
-        from cmpl.utilities.io import dicom_to_nifti
+        from mrif.utilities.io import dicom_to_nifti
 
     except ModuleNotFoundError as exc:
         if exc.name in {
@@ -86,15 +86,15 @@ def main():
             "h5py",
         }:
             parser.error(
-                "DICOM/NIfTI support requires the CMPL I/O "
+                "DICOM/NIfTI support requires the MRIForge I/O "
                 "dependencies. Install them with:\n"
-                "    pip install 'cmpl[io]'"
+                "    pip install 'mriforge[io]'"
             )
 
         raise
 
     if args.verbose:
-        print("CMPL DICOM to NIfTI conversion")
+        print("MRIForge DICOM to NIfTI conversion")
         print(f"DICOM series: {dicom_directory}")
         print(f"NIfTI output: {nifti_file}")
         print("Reading DICOM series...")

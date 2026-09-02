@@ -192,12 +192,12 @@
   192  2026-08-20 16:38:41 rm -rf 7T_raw/
   193  2026-08-20 16:38:41 cd
   194  2026-08-20 16:38:41 cd -
-  195  2026-08-20 16:38:41 cd cmpl/quantitative_MRI/
+  195  2026-08-20 16:38:41 cd /quantitative_MRI/
   196  2026-08-20 16:38:41 vim mapping.py 
   197  2026-08-20 16:38:41 cd .
   198  2026-08-20 16:38:41 ls
   199  2026-08-20 16:38:41 ls
-  200  2026-08-20 16:38:41 cd cmpl_publish/
+  200  2026-08-20 16:38:41 cd _publish/
   201  2026-08-20 16:38:41 ls
   202  2026-08-20 16:38:41 pwd
   203  2026-08-20 16:38:41 exit
@@ -262,7 +262,7 @@
   262  2026-01-15 15:18:03 cd
   263  2026-01-15 15:18:20 history | grep jupyter
   264  2026-01-15 13:38:55 watch 'du -h --max-depth=0 miniconda3/pkgs'
-  265  2026-01-15 16:42:08 pip install cmpl
+  265  2026-01-15 16:42:08 pip install
   266  2026-01-15 17:01:32 python - << 'EOF'
   267  2026-08-20 16:38:41 import sys, IPython, matplotlib_inline
   268  2026-08-20 16:38:41 print("python:", sys.executable)
@@ -282,9 +282,9 @@
   282  2026-01-16 13:56:18 pip install -e .
   283  2026-01-16 14:02:43 git status
   284  2026-01-16 14:03:10 rm -rf cmpl
-  285  2026-01-16 14:03:23 mv cmpl.egg-info/ ..
+  285  2026-01-16 14:03:23 mv mrif.egg-info/ ..
   286  2026-01-16 14:03:27 git status
-  287  2026-01-16 14:03:35 rm -rf ../cmpl.egg-info/
+  287  2026-01-16 14:03:35 rm -rf ../mrif.egg-info/
   288  2026-01-16 14:03:42 pip install -e .
   289  2026-01-16 16:58:52 git status 
   290  2026-01-16 16:58:57 git add src
@@ -304,7 +304,7 @@
   304  2026-01-20 11:49:29 python -c "import cmpl; print(getattr(cmpl, '__version__', 'no __version__ attr'))"
   305  2026-01-20 12:19:56 pip install twine
   306  2026-01-20 12:22:10 vim LICENSE 
-  307  2026-01-20 12:23:23 rm -rf dist/ src/cmpl.egg-info/
+  307  2026-01-20 12:23:23 rm -rf dist/ src/mrif.egg-info/
   308  2026-01-20 12:25:12 cat pyproject.toml 
   309  2026-01-20 12:25:23 cat LICENSE 
   310  2026-01-20 12:25:28 cd src/
@@ -312,7 +312,7 @@
   312  2026-01-20 12:25:37 l _version.py 
   313  2026-01-20 12:25:42 cat _version.py 
   314  2026-01-20 12:26:39 cd../..
-  315  2026-01-20 12:27:34 rm -rf dist/ src/cmpl.egg-info/
+  315  2026-01-20 12:27:34 rm -rf dist/ src/mrif.egg-info/
   316  2026-01-20 12:28:17 python -m pip install --upgrade pip setuptools wheel build twine
   317  2026-01-20 12:34:11 ls -la
   318  2026-01-20 12:34:11 grep -RIn --exclude-dir=.git -E "license[_-]file|setup\.cfg|setup\.py" .
@@ -340,7 +340,7 @@
   340  2026-01-20 12:46:02 pip uninstall packaging
   341  2026-01-20 12:46:17 pip install packaging
   342  2026-01-20 12:46:27 rm -rf dist/
-  343  2026-01-20 12:46:35 rm -rf src/cmpl.egg-info/
+  343  2026-01-20 12:46:35 rm -rf src/mrif.egg-info/
   344  2026-01-20 12:49:11 pip install --upgrade .
   345  2026-01-20 12:49:17 pip install -e --upgrade .
   346  2026-01-20 12:49:31 pip install -e .
@@ -534,8 +534,8 @@
   534  2026-02-16 15:31:46 git commit -m 'version correction'
   535  2026-02-16 15:31:50 git head
   536  2026-02-16 15:39:51 git remote -v
-  537  2026-02-16 15:40:08 git remote add origin git@github.com:ehedayati/cmpl.git
-  538  2026-02-16 15:40:25 git remote add github git@github.com:ehedayati/cmpl.git
+  537  2026-02-16 15:40:08 git remote add origin git@github.com:ehedayati/mrif.git
+  538  2026-02-16 15:40:25 git remote add github git@github.com:ehedayati/mrif.git
   539  2026-02-16 15:40:29 git remote -v
   540  2026-02-16 15:40:51 git push github --all
   541  2026-02-16 15:41:41 cat ~/.ssh/id_rsa.pub 
@@ -1656,7 +1656,7 @@
  1656  2026-08-20 15:50:24 which python
  1657  2026-08-20 15:50:27 python --version
  1658  2026-08-20 15:50:52 python -m pip install -e .
- 1659  2026-08-20 16:06:22 python -c "import cmpl; print(cmpl.__version__)"
+ 1659  2026-08-20 16:06:22 python -c "import cmpl; print(mrif.__version__)"
  1660  2026-08-20 16:38:41 import sys
  1661  2026-08-20 16:38:41 import cmpl
  1662  2026-08-20 16:38:41 packages = [
@@ -1675,7 +1675,7 @@
  1675  2026-08-20 16:38:41     "ipywidgets",
  1676  2026-08-20 16:38:41     "IPython",
  1677  2026-08-20 16:38:41 ]
- 1678  2026-08-20 16:38:41 print("CMPL version:", cmpl.__version__)
+ 1678  2026-08-20 16:38:41 print("CMPL version:", mrif.__version__)
  1679  2026-08-20 16:38:41 print()
  1680  2026-08-20 16:38:41 for pkg in packages:
  1681  2026-08-20 16:38:41     print(f"{pkg:15} {'LOADED' if pkg in sys.modules else 'not loaded'}")
@@ -1698,26 +1698,26 @@
  1698  2026-08-20 16:38:41 import cmpl
  1699  2026-08-20 16:38:41 print("After import cmpl:")
  1700  2026-08-20 16:38:41 print("torch loaded:", "torch" in sys.modules)
- 1701  2026-08-20 16:38:41 _ = cmpl.recon
- 1702  2026-08-20 16:38:41 print("\nAfter cmpl.recon:")
+ 1701  2026-08-20 16:38:41 _ = mrif.recon
+ 1702  2026-08-20 16:38:41 print("\nAfter mrif.recon:")
  1703  2026-08-20 16:38:41 print("torch loaded:", "torch" in sys.modules)
- 1704  2026-08-20 16:38:41 _ = cmpl.recon.grappa
- 1705  2026-08-20 16:38:41 print("\nAfter cmpl.recon.grappa:")
+ 1704  2026-08-20 16:38:41 _ = mrif.recon.grappa
+ 1705  2026-08-20 16:38:41 print("\nAfter mrif.recon.grappa:")
  1706  2026-08-20 16:38:41 print("torch loaded:", "torch" in sys.modules)
  1707  2026-08-20 16:38:41 print("\nAvailable GRAPPA attributes:")
- 1708  2026-08-20 16:38:41 print(dir(cmpl.recon.grappa))
+ 1708  2026-08-20 16:38:41 print(dir(mrif.recon.grappa))
  1709  2026-08-20 16:38:41 PY
  1710  2026-08-20 16:38:41 import sys
  1711  2026-08-20 16:38:41 import cmpl
  1712  2026-08-20 16:38:41 print("Initial:")
  1713  2026-08-20 16:38:41 print("torch loaded:", "torch" in sys.modules)
- 1714  2026-08-20 16:38:41 _ = cmpl.recon.sense
- 1715  2026-08-20 16:38:41 print("\nAfter cmpl.recon.sense:")
+ 1714  2026-08-20 16:38:41 _ = mrif.recon.sense
+ 1715  2026-08-20 16:38:41 print("\nAfter mrif.recon.sense:")
  1716  2026-08-20 16:38:41 print("torch loaded:", "torch" in sys.modules)
- 1717  2026-08-20 16:38:41 print("sense attributes:", dir(cmpl.recon.sense))
+ 1717  2026-08-20 16:38:41 print("sense attributes:", dir(mrif.recon.sense))
  1718  2026-08-20 16:38:41 print("\nNow accessing cg...")
  1719  2026-08-20 16:38:41 try:
- 1720  2026-08-20 16:38:41     _ = cmpl.recon.sense.cg
+ 1720  2026-08-20 16:38:41     _ = mrif.recon.sense.cg
  1721  2026-08-20 16:38:41     print("cg loaded successfully")
  1722  2026-08-20 16:38:41 except Exception as e:
  1723  2026-08-20 16:38:41     print(type(e).__name__ + ":", e)

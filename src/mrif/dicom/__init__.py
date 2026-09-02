@@ -81,7 +81,7 @@ def __getattr__(name: str):
         globals()[name] = obj
         return obj
 
-    # Preserve the existing cmpl.dicom API:
+    # Preserve the existing mrif.dicom API:
     # unknown names are looked up in enhanced_dicom.py.
     module = import_module(
         ".enhanced_dicom",

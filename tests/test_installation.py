@@ -31,14 +31,14 @@ def assert_success(result):
         )
 
 
-def test_cmpl_import_is_lightweight():
+def test_mrif_import_is_lightweight():
     result = run_isolated(
         """
         import sys
-        import cmpl
+        import mrif
         from importlib.metadata import version
 
-        assert cmpl.__version__ == version("cmpl")
+        assert mrif.__version__ == version("mriforge")
 
         optional_modules = [
             "torch",
@@ -61,7 +61,7 @@ def test_cmpl_import_is_lightweight():
         ]
 
         assert not loaded, (
-            "Optional packages were loaded by `import cmpl`: "
+            "Optional packages were loaded by `import mrif`: "
             f"{loaded}"
         )
         """
@@ -74,9 +74,9 @@ def test_reconstruction_namespace_is_lazy():
     result = run_isolated(
         """
         import sys
-        import cmpl
+        import mrif
 
-        _ = cmpl.recon
+        _ = mrif.recon
 
         assert "torch" not in sys.modules
         """
@@ -89,9 +89,9 @@ def test_grappa_namespace_is_lazy():
     result = run_isolated(
         """
         import sys
-        import cmpl
+        import mrif
 
-        _ = cmpl.recon.grappa
+        _ = mrif.recon.grappa
 
         assert "torch" not in sys.modules
         """
@@ -103,7 +103,7 @@ def test_grappa_namespace_is_lazy():
 def test_grappa_function_import():
     result = run_isolated(
         """
-        from cmpl.reconstruction.grappa import grappa_1d_recon
+        from mrif.reconstruction.grappa import grappa_1d_recon
 
         assert callable(grappa_1d_recon)
         """
@@ -116,9 +116,9 @@ def test_sense_namespace_is_lazy():
     result = run_isolated(
         """
         import sys
-        import cmpl
+        import mrif
 
-        _ = cmpl.recon.sense
+        _ = mrif.recon.sense
 
         assert "torch" not in sys.modules
         """
@@ -130,7 +130,7 @@ def test_sense_namespace_is_lazy():
 def test_sense_cg_import():
     result = run_isolated(
         """
-        from cmpl.reconstruction.sense.cg import CG_sense_2D
+        from mrif.reconstruction.sense.cg import CG_sense_2D
 
         assert callable(CG_sense_2D)
         """
@@ -143,9 +143,9 @@ def test_qmr_namespace_is_lazy():
     result = run_isolated(
         """
         import sys
-        import cmpl
+        import mrif
 
-        _ = cmpl.qmr
+        _ = mrif.qmr
 
         assert "torch" not in sys.modules
         assert "matplotlib" not in sys.modules
@@ -158,7 +158,7 @@ def test_qmr_namespace_is_lazy():
 def test_qmr_function_import():
     result = run_isolated(
         """
-        from cmpl.quantitative_MRI import reconstruct_images
+        from mrif.quantitative_MRI import reconstruct_images
 
         assert callable(reconstruct_images)
         """
@@ -197,7 +197,7 @@ def test_visualization_works_without_io_dependencies():
 
         sys.meta_path.insert(0, ForbiddenImportFinder())
 
-        from cmpl.visualization import side_by_side_view
+        from mrif.visualization import side_by_side_view
 
         assert callable(side_by_side_view)
         """
@@ -211,7 +211,7 @@ def test_io_does_not_load_unrelated_dependencies():
         """
         import sys
 
-        import cmpl.utilities.io
+        import mrif.utilities.io
 
         forbidden = [
             "torch",
@@ -241,7 +241,7 @@ def test_data_does_not_load_unrelated_dependencies():
         """
         import sys
 
-        from cmpl.utilities.df_build import build_medical_data_frame
+        from mrif.utilities.df_build import build_medical_data_frame
 
         assert callable(build_medical_data_frame)
 
@@ -274,9 +274,9 @@ def test_dicom_namespace_is_lazy():
     result = run_isolated(
         """
         import sys
-        import cmpl
+        import mrif
 
-        _ = cmpl.dicom
+        _ = mrif.dicom
 
         forbidden = [
             "nibabel",

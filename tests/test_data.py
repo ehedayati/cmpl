@@ -11,7 +11,7 @@ def test_build_medical_data_frame_empty_directory(tmp_path):
     An empty root directory should return an empty DataFrame.
     """
 
-    from cmpl.utilities.df_build import build_medical_data_frame
+    from mrif.utilities.df_build import build_medical_data_frame
 
     result = build_medical_data_frame(tmp_path)
 
@@ -24,7 +24,7 @@ def test_build_medical_data_frame_missing_root(tmp_path):
     A nonexistent root directory should return an empty DataFrame.
     """
 
-    from cmpl.utilities.df_build import build_medical_data_frame
+    from mrif.utilities.df_build import build_medical_data_frame
 
     missing = tmp_path / "does_not_exist"
 
@@ -39,7 +39,7 @@ def test_build_medical_data_frame_discovers_dicom_directory(tmp_path):
     Verify that a study containing a DICOM contrast directory is indexed.
     """
 
-    from cmpl.utilities.df_build import build_medical_data_frame
+    from mrif.utilities.df_build import build_medical_data_frame
 
     study = tmp_path / "Study001"
     contrast = study / "Dicoms" / "MR-SE12-T2_STAR"
@@ -66,7 +66,7 @@ def test_build_medical_data_frame_discovers_h5_file(tmp_path):
     Verify that HDF5 files are indexed correctly.
     """
 
-    from cmpl.utilities.df_build import build_medical_data_frame
+    from mrif.utilities.df_build import build_medical_data_frame
 
     h5_dir = tmp_path / "Study001" / "h5_files"
     h5_dir.mkdir(parents=True)
@@ -97,7 +97,7 @@ def test_build_medical_data_frame_discovers_segmentation_file(tmp_path):
     This tests DataFrame construction only; no segmentation package is used.
     """
 
-    from cmpl.utilities.df_build import build_medical_data_frame
+    from mrif.utilities.df_build import build_medical_data_frame
 
     seg_dir = (
         tmp_path
@@ -141,7 +141,7 @@ def test_build_medical_data_frame_ignores_old_segmentation(tmp_path):
     Files ending in _old.nii should not be added to the DataFrame.
     """
 
-    from cmpl.utilities.df_build import build_medical_data_frame
+    from mrif.utilities.df_build import build_medical_data_frame
 
     seg_dir = (
         tmp_path

@@ -18,15 +18,15 @@ import SimpleITK as sitk
 from nibabel.nifti1 import Nifti1Image
 from numpy.typing import NDArray
 
-from cmpl.dicom.geometry import (
+from mrif.dicom.geometry import (
     extract_slice_geometry,
     get_slice_position,
 )
-from cmpl.dicom.metadata import (
+from mrif.dicom.metadata import (
     extract_acquisition_metadata,
 )
 
-from cmpl.dicom.enhanced_dicom import (
+from mrif.dicom.enhanced_dicom import (
     extract_enhanced_acquisition_metadata,
     get_enhanced_frame_info,
     is_enhanced_dicom,
@@ -642,7 +642,7 @@ def _dicom_to_simpleitk(
 
         image = series_reader.Execute()
 
-        # Preserve previous CMPL behavior: copy metadata from
+        # Preserve previous MRIForge behavior: copy metadata from
         # the first DICOM slice to the resulting volume.
         for key, value in first_metadata.items():
             image.SetMetaData(
@@ -758,17 +758,17 @@ def _dicom_to_simpleitk(
     # ------------------------------------------------------------
 
     metadata = {
-        "CMPLMetadataVersion": 1,
+        "MRIForgeMetadataVersion": 1,
 
         "Acquisition": (
             acquisition_metadata
         ),
 
-        "CMPLSourceGeometry": (
+        "MRIForgeSourceGeometry": (
             source_geometry
         ),
 
-        "CMPLSimpleITKGeometry": {
+        "MRIForgeSimpleITKGeometry": {
             "CoordinateSystem": "LPS",
 
             "Dimension": (
@@ -1349,17 +1349,17 @@ def _enhanced_dicom_to_simpleitk(
     # ------------------------------------------------------------
 
     metadata = {
-        "CMPLMetadataVersion": 1,
+        "MRIForgeMetadataVersion": 1,
 
         "Acquisition": (
             acquisition_metadata
         ),
 
-        "CMPLSourceGeometry": (
+        "MRIForgeSourceGeometry": (
             source_geometry
         ),
 
-        "CMPLSimpleITKGeometry": {
+        "MRIForgeSimpleITKGeometry": {
             "CoordinateSystem": "LPS",
 
             "Dimension": (

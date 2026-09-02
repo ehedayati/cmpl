@@ -1,14 +1,14 @@
-# src/cmpl/_version.py
+# src/mrif/_version.py
 from __future__ import annotations
 from importlib.metadata import PackageNotFoundError, version as _dist_version
 
 # Name of the installed distribution (usually your [project].name)
-_DIST_NAME = "cmpl"
+_DIST_NAME = "mriforge"
 
 def _from_pyproject() -> str:
     # Fallback for editable/dev checkouts where the dist isn’t installed yet
     import sys, pathlib
-    root = pathlib.Path(__file__).resolve().parents[2]  # .../src/cmpl -> project root?
+    root = pathlib.Path(__file__).resolve().parents[2]  # .../src/mrif -> project root?
     # Walk up until we find pyproject.toml
     while root != root.parent and not (root / "pyproject.toml").exists():
         root = root.parent

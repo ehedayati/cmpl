@@ -65,7 +65,7 @@ def _make_test_data(tmp_path):
 
 def test_t2star_cli(tmp_path, monkeypatch):
 
-    from cmpl.cli.t2star import main
+    from mrif.cli.t2star import main
 
     nifti_file, _, affine = _make_test_data(
         tmp_path
@@ -74,7 +74,7 @@ def test_t2star_cli(tmp_path, monkeypatch):
     monkeypatch.setattr(
         "sys.argv",
         [
-            "cmpl-t2star",
+            "mriforge-t2star",
             str(nifti_file),
             "--device",
             "cpu",
@@ -116,7 +116,7 @@ def test_t2star_cli(tmp_path, monkeypatch):
             tmp_path,
             monkeypatch,
     ):
-        from cmpl.cli.t2star import main
+        from mrif.cli.t2star import main
 
         nifti_file, json_file, _ = (
             _make_test_data(tmp_path)
@@ -142,7 +142,7 @@ def test_t2star_cli(tmp_path, monkeypatch):
         monkeypatch.setattr(
             "sys.argv",
             [
-                "cmpl-t2star",
+                "mriforge-t2star",
                 str(nifti_file),
                 "--device",
                 "cpu",

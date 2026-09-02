@@ -7,7 +7,7 @@ import numpy as np
 def test_side_by_side_view_runs(monkeypatch):
     import matplotlib.pyplot as plt
 
-    from cmpl.visualization import side_by_side_view
+    from mrif.visualization import side_by_side_view
 
     shown = {"called": False}
 
@@ -34,7 +34,7 @@ def test_side_by_side_view_runs(monkeypatch):
 def test_visualize_segmentation_slice_runs(monkeypatch):
     import matplotlib.pyplot as plt
 
-    from cmpl.visualization import visualize_segmentation_slice
+    from mrif.visualization import visualize_segmentation_slice
 
     monkeypatch.setattr(plt, "show", lambda: None)
 
@@ -62,7 +62,7 @@ def test_visualize_segmentation_slice_runs(monkeypatch):
 def test_plot_3d_mri_static_slice_runs(monkeypatch):
     import matplotlib.pyplot as plt
 
-    from cmpl.visualization import plot_3D_mri
+    from mrif.visualization import plot_3D_mri
 
     monkeypatch.setattr(plt, "show", lambda: None)
 

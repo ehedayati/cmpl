@@ -39,7 +39,7 @@ def _nifti_stem(path: Path) -> str:
 def _build_parser():
 
     parser = argparse.ArgumentParser(
-        prog="cmpl-t2star",
+        prog="mriforge-t2star",
         description=(
             "Calculate 3D T2* and S0 maps from a 4D "
             "multi-echo NIfTI and JSON metadata sidecar."
@@ -267,11 +267,11 @@ def main():
         import nibabel as nib
         import torch
 
-        from cmpl.quantitative_MRI.mapping import (
+        from mrif.quantitative_MRI.mapping import (
             t2_star_two_parametric_3D,
         )
 
-        from cmpl.utilities.io import (
+        from mrif.utilities.io import (
             save_scalar_map_like,
         )
 
@@ -371,7 +371,7 @@ def main():
     # Fit
     # ---------------------------------------------------------
 
-    print("CMPL 3D T2* calculation")
+    print("MRIForge 3D T2* calculation")
     print(f"NIfTI: {nifti_file}")
     print(f"JSON:  {json_file}")
     print(
@@ -447,7 +447,7 @@ def main():
         t2star,
         str(t2star_file),
         dtype=np.float32,
-        descrip="CMPL T2* map (ms)",
+        descrip="MRIForge T2* map (ms)",
         intent_name="T2star",
     )
 
@@ -456,7 +456,7 @@ def main():
         s0,
         str(s0_file),
         dtype=np.float32,
-        descrip="CMPL S0 map",
+        descrip="MRIForge S0 map",
         intent_name="S0",
     )
 

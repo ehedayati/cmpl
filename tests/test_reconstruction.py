@@ -6,7 +6,7 @@ import torch
 
 
 def test_grappa_1d_preserves_acquired_lines():
-    from cmpl.reconstruction.grappa import grappa_1d_recon
+    from mrif.reconstruction.grappa import grappa_1d_recon
 
     rng = np.random.default_rng(42)
 
@@ -44,7 +44,7 @@ def test_grappa_1d_preserves_acquired_lines():
 
 
 def test_grappa_1d_weight_calculation_recovers_known_mapping():
-    from cmpl.reconstruction.grappa.grappa_1D import (
+    from mrif.reconstruction.grappa.grappa_1D import (
         calculate_reconstruction_weights,
     )
 
@@ -89,7 +89,7 @@ def test_grappa_1d_weight_calculation_recovers_known_mapping():
 
 
 def test_grappa_2d_weight_calculation_recovers_known_mapping():
-    from cmpl.reconstruction.grappa.grappa_2D import (
+    from mrif.reconstruction.grappa.grappa_2D import (
         grappa_2D_compute_reconstruction_weights,
     )
 
@@ -133,7 +133,7 @@ def test_grappa_2d_weight_calculation_recovers_known_mapping():
 
 
 def test_cg_sense_zero_input_returns_zero():
-    from cmpl.reconstruction.sense.cg import CG_sense_2D
+    from mrif.reconstruction.sense.cg import CG_sense_2D
 
     kspace = torch.zeros(
         (4, 4, 1, 1),

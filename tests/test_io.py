@@ -23,7 +23,7 @@ from pydicom.uid import (
 def test_nifti_read(tmp_path):
     """Verify that a NIfTI file can be read without modifying its data."""
 
-    from cmpl.utilities.io import nifti_read
+    from mrif.utilities.io import nifti_read
 
     data = np.arange(
         4 * 5 * 6,
@@ -54,7 +54,7 @@ def test_update_nifti_data_preserves_geometry(tmp_path):
     Verify that replacing NIfTI data preserves the original affine and shape.
     """
 
-    from cmpl.utilities.io import update_nifti_data
+    from mrif.utilities.io import update_nifti_data
 
     original_data = np.zeros(
         (4, 5, 6),
@@ -111,7 +111,7 @@ def test_update_nifti_data_preserves_geometry(tmp_path):
 def test_update_nifti_data_rejects_wrong_shape(tmp_path):
     """Verify that replacing NIfTI data with a mismatched shape fails."""
 
-    from cmpl.utilities.io import update_nifti_data
+    from mrif.utilities.io import update_nifti_data
 
     data = np.zeros(
         (4, 5, 6),
@@ -140,7 +140,7 @@ def test_update_nifti_data_rejects_wrong_shape(tmp_path):
 def test_update_nifti_data_preserves_nifti2_class(tmp_path):
     """Verify that NIfTI-2 input remains NIfTI-2 after replacement."""
 
-    from cmpl.utilities.io import update_nifti_data
+    from mrif.utilities.io import update_nifti_data
 
     data = np.zeros((3, 4, 5), dtype=np.float32)
     input_path = tmp_path / "input_nifti2.nii.gz"
@@ -165,7 +165,7 @@ def test_update_nifti_data_preserves_nifti2_class(tmp_path):
 def test_update_nifti_data_preserves_qform_and_sform(tmp_path):
     """Verify that qform/sform matrices and codes are retained exactly."""
 
-    from cmpl.utilities.io import update_nifti_data
+    from mrif.utilities.io import update_nifti_data
 
     data = np.zeros((3, 4, 5), dtype=np.float32)
 
@@ -214,7 +214,7 @@ def test_update_nifti_data_preserves_qform_and_sform(tmp_path):
 def test_update_nifti_data_preserves_zero_transform_codes(tmp_path):
     """Verify that unset qform/sform codes are not promoted on output."""
 
-    from cmpl.utilities.io import update_nifti_data
+    from mrif.utilities.io import update_nifti_data
 
     data = np.zeros((3, 4, 5), dtype=np.float32)
     image = nib.Nifti1Image(data, np.eye(4))
@@ -240,16 +240,16 @@ def test_update_nifti_data_preserves_zero_transform_codes(tmp_path):
 def test_update_nifti_data_preserves_header_metadata(tmp_path):
     """Verify representative header fields and extensions survive."""
 
-    from cmpl.utilities.io import update_nifti_data
+    from mrif.utilities.io import update_nifti_data
 
     data = np.zeros((3, 4, 5), dtype=np.float32)
     image = nib.Nifti1Image(data, np.eye(4))
 
-    image.header["descrip"] = b"CMPL metadata test"
+    image.header["descrip"] = b"MRIForge metadata test"
     image.header["aux_file"] = b"reference"
     image.header.set_xyzt_units("mm", "sec")
     image.header.extensions.append(
-        nib.nifti1.Nifti1Extension(6, b"cmpl-extension")
+        nib.nifti1.Nifti1Extension(6, b"mriforge-extension")
     )
 
     input_path = tmp_path / "input.nii"
@@ -264,17 +264,17 @@ def test_update_nifti_data_preserves_header_metadata(tmp_path):
 
     result = nib.load(output_path)
 
-    assert bytes(result.header["descrip"]).rstrip(b"\x00") == b"CMPL metadata test"
+    assert bytes(result.header["descrip"]).rstrip(b"\x00") == b"MRIForge metadata test"
     assert bytes(result.header["aux_file"]).rstrip(b"\x00") == b"reference"
     assert result.header.get_xyzt_units() == ("mm", "sec")
     assert len(result.header.extensions) == 1
-    assert result.header.extensions[0].get_content() == b"cmpl-extension"
+    assert result.header.extensions[0].get_content() == b"mriforge-extension"
 
 
 def test_update_nifti_data_does_not_inherit_intensity_scaling(tmp_path):
     """Verify replacement values are not transformed by source scaling."""
 
-    from cmpl.utilities.io import update_nifti_data
+    from mrif.utilities.io import update_nifti_data
 
     source = np.zeros((3, 4, 5), dtype=np.int16)
     image = nib.Nifti1Image(source, np.eye(4))
@@ -300,7 +300,7 @@ def test_update_nifti_data_does_not_inherit_intensity_scaling(tmp_path):
 def test_update_nifti_data_defaults_to_float32(tmp_path):
     """Verify backward-compatible float32 output remains the default."""
 
-    from cmpl.utilities.io import update_nifti_data
+    from mrif.utilities.io import update_nifti_data
 
     source = np.zeros((3, 4, 5), dtype=np.int16)
     new_data = np.full(source.shape, 1.75, dtype=np.float64)
@@ -324,7 +324,7 @@ def test_update_nifti_data_defaults_to_float32(tmp_path):
 def test_update_nifti_data_dtype_none_preserves_source_dtype(tmp_path):
     """Verify dtype=None opts into the reference image dtype."""
 
-    from cmpl.utilities.io import update_nifti_data
+    from mrif.utilities.io import update_nifti_data
 
     source = np.zeros((3, 4, 5), dtype=np.int16)
     new_data = np.full(source.shape, 7, dtype=np.int32)
@@ -350,7 +350,7 @@ def test_update_nifti_data_dtype_none_preserves_source_dtype(tmp_path):
 def test_update_nifti_data_compression_levels(tmp_path, compression_level):
     """Verify supported gzip levels produce readable NIfTI files."""
 
-    from cmpl.utilities.io import update_nifti_data
+    from mrif.utilities.io import update_nifti_data
 
     data = np.arange(3 * 4 * 5, dtype=np.float32).reshape(3, 4, 5)
     input_path = tmp_path / "input.nii.gz"
@@ -371,7 +371,7 @@ def test_update_nifti_data_compression_levels(tmp_path, compression_level):
 def test_update_nifti_data_accepts_numpy_integer_compression_level(tmp_path):
     """Verify NumPy integer compression levels are accepted."""
 
-    from cmpl.utilities.io import update_nifti_data
+    from mrif.utilities.io import update_nifti_data
 
     data = np.zeros((3, 4, 5), dtype=np.float32)
     input_path = tmp_path / "input.nii.gz"
@@ -395,7 +395,7 @@ def test_update_nifti_data_rejects_invalid_compression_level(
 ):
     """Verify gzip levels outside 0..9 are rejected."""
 
-    from cmpl.utilities.io import update_nifti_data
+    from mrif.utilities.io import update_nifti_data
 
     data = np.zeros((3, 4, 5), dtype=np.float32)
     input_path = tmp_path / "input.nii.gz"
@@ -416,7 +416,7 @@ def test_update_nifti_data_rejects_non_integer_compression_level(
 ):
     """Verify gzip compression level must be an actual integer."""
 
-    from cmpl.utilities.io import update_nifti_data
+    from mrif.utilities.io import update_nifti_data
 
     data = np.zeros((3, 4, 5), dtype=np.float32)
     input_path = tmp_path / "input.nii.gz"
@@ -433,7 +433,7 @@ def test_update_nifti_data_rejects_non_integer_compression_level(
 def test_update_nifti_data_overwrites_gzip_in_place(tmp_path):
     """Verify a .nii.gz reference can be safely updated in place."""
 
-    from cmpl.utilities.io import update_nifti_data
+    from mrif.utilities.io import update_nifti_data
 
     original = np.zeros((3, 4, 5), dtype=np.float32)
     replacement = np.full(original.shape, 13.0, dtype=np.float32)
@@ -454,7 +454,7 @@ def test_save_scalar_map_like(tmp_path):
     Verify that a scalar map is saved using the reference image geometry.
     """
 
-    from cmpl.utilities.io import save_scalar_map_like
+    from mrif.utilities.io import save_scalar_map_like
 
     reference_data = np.zeros(
         (4, 5, 6),
@@ -519,7 +519,7 @@ def test_compute_nifti_direction_identity_orientation():
     Slice  -> +z
     """
 
-    from cmpl.utilities.io import compute_nifti_direction
+    from mrif.utilities.io import compute_nifti_direction
 
     orientation = [
         1.0, 0.0, 0.0,
@@ -541,7 +541,7 @@ def test_compute_nifti_direction_identity_orientation():
 def test_itk_to_nifti(tmp_path):
     """Verify that a SimpleITK image can be written as a NIfTI file."""
 
-    from cmpl.utilities.io import itk_to_nifti
+    from mrif.utilities.io import itk_to_nifti
 
     array = np.arange(
         4 * 5 * 6,
@@ -598,7 +598,7 @@ def _write_test_dicom(
     echo_number=1,
 ):
     """
-    Create a minimal MR DICOM file suitable for testing CMPL's DICOM loader.
+    Create a minimal MR DICOM file suitable for testing MRIForge's DICOM loader.
     """
 
     file_meta = FileMetaDataset()
@@ -692,11 +692,11 @@ def test_load_dicom_scan_from_dir(tmp_path):
     Verify loading a small synthetic single-echo DICOM stack.
 
     reshape=False is intentional here so this test focuses on DICOM reading,
-    ordering, and pixel-data integrity independently of CMPL's orientation
+    ordering, and pixel-data integrity independently of MRIForge's orientation
     reshaping logic.
     """
 
-    from cmpl.utilities.io import load_dicom_scan_from_dir
+    from mrif.utilities.io import load_dicom_scan_from_dir
 
     dicom_dir = tmp_path / "dicoms"
     dicom_dir.mkdir()
@@ -753,7 +753,7 @@ def test_dicom_to_nifti_writes_image_and_json(tmp_path):
     - shared source geometry.
     """
 
-    from cmpl.utilities.io import dicom_to_nifti
+    from mrif.utilities.io import dicom_to_nifti
 
     dicom_dir = tmp_path / "dicoms"
     dicom_dir.mkdir()
@@ -931,7 +931,7 @@ def test_dicom_to_nifti_writes_image_and_json(tmp_path):
     )
 
     # ------------------------------------------------------------
-    # Verify metadata returned by CMPL.
+    # Verify metadata returned by MRIForge.
     # ------------------------------------------------------------
 
     assert metadata["Acquisition"]["EchoTimes"] == [
@@ -945,7 +945,7 @@ def test_dicom_to_nifti_writes_image_and_json(tmp_path):
     )
 
     source_geometry = metadata[
-        "CMPLSourceGeometry"
+        "MRIForgeSourceGeometry"
     ]
 
     assert (
@@ -971,11 +971,11 @@ def test_dicom_to_nifti_writes_image_and_json(tmp_path):
     assert saved_metadata == metadata
 
     assert saved_metadata[
-        "CMPLSimpleITKGeometry"
+        "MRIForgeSimpleITKGeometry"
     ]["Dimension"] == 4
 
     assert saved_metadata[
-        "CMPLSimpleITKGeometry"
+        "MRIForgeSimpleITKGeometry"
     ]["Size"] == [
         5,
         4,
@@ -989,7 +989,7 @@ def test_dicom_to_simpleitk_preserves_public_api(tmp_path):
     only a SimpleITK image after introducing metadata collection.
     """
 
-    from cmpl.utilities.io import dicom_to_SimpleITK
+    from mrif.utilities.io import dicom_to_SimpleITK
 
     dicom_dir = tmp_path / "dicoms"
     dicom_dir.mkdir()
@@ -1042,7 +1042,7 @@ def test_dicom_to_simpleitk_rejects_inconsistent_echo_time(
     and missing EchoTime values is rejected.
     """
 
-    from cmpl.utilities.io import dicom_to_SimpleITK
+    from mrif.utilities.io import dicom_to_SimpleITK
 
     dicom_dir = tmp_path / "dicoms"
     dicom_dir.mkdir()
@@ -1098,7 +1098,7 @@ def test_dicom_to_simpleitk_allows_missing_echo_time(
     metadata is treated as a single 3D volume.
     """
 
-    from cmpl.utilities.io import dicom_to_SimpleITK
+    from mrif.utilities.io import dicom_to_SimpleITK
 
     dicom_dir = tmp_path / "dicoms"
     dicom_dir.mkdir()

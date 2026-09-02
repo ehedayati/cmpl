@@ -3,7 +3,7 @@
 # Description: This file is developed at CMRR
 
 import numpy as np
-import cmpl
+import mrif
 
 def project_3d_matrix(matrix, value, axis):
     """
@@ -90,8 +90,8 @@ def extract_extrusion(extrusion_path, seg_path, projection_value=11):
         return a
 
     # Step 1: Read the NIfTI files
-    _, seg_f_no_rot = cmpl.utilities.io.nifti_read(seg_path, re_orient=False)
-    _, extrusion_cut_no_rot = cmpl.utilities.io.nifti_read(extrusion_path, re_orient=False)
+    _, seg_f_no_rot = mrif.utilities.io.nifti_read(seg_path, re_orient=False)
+    _, extrusion_cut_no_rot = mrif.utilities.io.nifti_read(extrusion_path, re_orient=False)
 
     # Step 2: Apply the projection transformation
     extrusion_projected_no_rot = project_3d_matrix(extrusion_cut_no_rot, projection_value, 1)

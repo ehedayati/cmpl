@@ -9,7 +9,7 @@ import nibabel as nib
 import tempfile
 import shutil
 import dicom2nifti
-from cmpl.utilities.io import load_dicom_scan_from_dir
+from mrif.utilities.io import load_dicom_scan_from_dir
 
 
 def _center_crop_tensor(input_tensor, new_X, new_Y):
