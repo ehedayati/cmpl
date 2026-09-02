@@ -1,35 +1,38 @@
-# CMPL — CMRR MRI Processing Libraries
+# MRIForge — MRI Processing Tools for Python
 
-[![PyPI version](https://img.shields.io/pypi/v/mrif.svg?cacheSeconds=300)](https://pypi.org/project/cmpl/)
-[![Python versions](https://img.shields.io/pypi/pyversions/mrif.svg)](https://pypi.org/project/cmpl/)
+[![PyPI version](https://img.shields.io/pypi/v/mriforge.svg?cacheSeconds=300)](https://pypi.org/project/mriforge/)
+[![Python versions](https://img.shields.io/pypi/pyversions/mriforge.svg)](https://pypi.org/project/mriforge/)
 
-**PyPI:** https://pypi.org/project/cmpl/  
-**GitHub:** https://github.com/ehedayati/cmpl
+**PyPI:** https://pypi.org/project/mriforge/  
+**GitHub:** https://github.com/ehedayati/mriforge
 
-CMPL is a Python package for MRI processing workflows developed at CMRR. It provides tools for MRI reconstruction, quantitative MRI, visualization, DICOM/NIfTI conversion and I/O, and supporting numerical and data utilities.
+MRIForge is a modular Python toolkit for MRI processing workflows. It provides tools for DICOM/NIfTI conversion and I/O, quantitative MRI, MRI reconstruction, visualization, and supporting numerical and data utilities.
 
-The package is modular by design: the base installation remains lightweight, while larger or domain-specific dependencies are installed only when the corresponding functionality is needed.
+The base installation is intentionally lightweight. Larger or domain-specific dependencies are installed only when the corresponding functionality is needed.
+
+> **Project rename:** MRIForge is the continuation of CMPL. Beginning with MRIForge 0.3.0, the PyPI distribution is `mriforge` and the Python import namespace is `mrif`.
 
 ## Highlights
 
 - Geometry-aware conventional and Enhanced DICOM to NIfTI conversion
 - JSON metadata sidecars with acquisition and source-geometry information
 - Multi-echo DICOM support with 4D NIfTI output ordered by echo time
-- Packaged `mriforge-dicom-to-nifti` command-line converter
-- Packaged `mriforge-t2star` command-line T2* and S0 mapper
+- `mriforge-dicom-to-nifti` command-line converter
+- `mriforge-t2star` command-line T2* and S0 mapper
 - DICOM geometry and acquisition-metadata utilities
+- NIfTI data replacement while preserving image geometry and metadata
 - Parallel MRI reconstruction with 1D/2D GRAPPA and conjugate-gradient SENSE
 - Quantitative MRI tools for T2* fitting, signal reconstruction, and fitting-error analysis
 - MRI visualization utilities for 2D comparisons and 3D volume browsing
 - Conventional and Enhanced DICOM, NIfTI, HDF5, and SimpleITK utilities
-- Lightweight numerical utilities shared across CMPL
-- Optional pandas-based indexing for CMPL-style medical-data directory structures
+- Lightweight numerical utilities shared across MRIForge
+- Optional pandas-based indexing for medical-data directory structures
 - Lazy imports so unrelated optional dependencies are not loaded unnecessarily
 - Convenient aliases such as `mrif.recon`, `mrif.qmr`, `mrif.vis`, and `mrif.io`
 
 ## Requirements
 
-CMPL requires:
+MRIForge requires:
 
 - Python >= 3.10
 - NumPy >= 1.26, < 3
@@ -43,7 +46,7 @@ Additional functionality is provided through optional dependency groups.
 Install the lightweight base package:
 
 ```bash
-python -m pip install cmpl
+python -m pip install mriforge
 ```
 
 Install only the functionality you need:
@@ -54,7 +57,7 @@ Install only the functionality you need:
 | `data` | pandas-based data indexing |
 | `viz` | Matplotlib and Jupyter visualization |
 | `torch` | PyTorch-based reconstruction and quantitative MRI |
-| `all` | All optional CMPL functionality |
+| `all` | Complete optional MRIForge environment |
 | `dev` | Testing, linting, build, and release tools |
 
 Examples:
@@ -82,12 +85,12 @@ python -m pip install "mriforge[viz]"
 ## Quick start
 
 ```python
-import cmpl
+import mrif
 
 print(mrif.__version__)
 ```
 
-CMPL exposes convenient aliases for commonly used subpackages:
+MRIForge exposes convenient aliases for commonly used subpackages:
 
 ```python
 mrif.recon   # reconstruction
@@ -98,7 +101,38 @@ mrif.dicom   # DICOM metadata and geometry utilities
 mrif.utils   # utilities
 ```
 
-These aliases are resolved lazily so `import cmpl` does not require every optional dependency to be installed or imported.
+These aliases are resolved lazily, so `import mrif` does not require every optional dependency to be installed or imported.
+
+## Migration from CMPL
+
+MRIForge 0.3.0 introduces a new distribution name and Python namespace:
+
+```text
+Old PyPI package:    cmpl
+New PyPI package:    mriforge
+
+Old Python import:   cmpl
+New Python import:   mrif
+```
+
+For example:
+
+```python
+# Before
+import cmpl
+from cmpl.utilities.io import nifti_read
+
+# MRIForge
+import mrif
+from mrif.utilities.io import nifti_read
+```
+
+CLI commands also use the MRIForge name:
+
+```text
+cmpl-dicom-to-nifti  ->  mriforge-dicom-to-nifti
+cmpl-t2star           ->  mriforge-t2star
+```
 
 ---
 
@@ -112,7 +146,7 @@ python -m pip install "mriforge[io]"
 
 ### Convert a DICOM series to NIfTI
 
-CMPL supports direct conversion of both conventional and Enhanced DICOM series to NIfTI.
+MRIForge supports direct conversion of both conventional and Enhanced DICOM series to NIfTI.
 
 The converter:
 
@@ -124,7 +158,7 @@ The converter:
 - orders multi-echo volumes by echo time
 
 ```python
-import cmpl
+import mrif
 
 metadata = mrif.io.dicom_to_nifti(
     "/path/to/dicom_series",
@@ -139,9 +173,9 @@ output.nii.gz
 output.json
 ```
 
-If the output path does not end in `.nii` or `.nii.gz`, CMPL appends `.nii.gz`.
+If the output path does not end in `.nii` or `.nii.gz`, MRIForge appends `.nii.gz`.
 
-For a single echo, the output is a 3D image. For a multi-echo acquisition, CMPL writes a 4D NIfTI with echoes in the last dimension:
+For a single echo, the output is a 3D image. For a multi-echo acquisition, MRIForge writes a 4D NIfTI with echoes in the last dimension:
 
 ```text
 x, y, z, echo
@@ -188,7 +222,7 @@ The same CLI can be invoked as a Python module:
 python -m mrif.cli.dicom_to_nifti /path/to/dicom_series
 ```
 
-If the output path is omitted, CMPL writes the NIfTI and JSON sidecar to the current directory using the DICOM directory name:
+If the output path is omitted, MRIForge writes the NIfTI and JSON sidecar to the current directory using the DICOM directory name:
 
 ```text
 ./<series_directory_name>.nii.gz
@@ -218,15 +252,8 @@ from mrif.utilities.io import nifti_read
 
 nifti_image, data = nifti_read("image.nii.gz")
 ```
-By default, updated voxel data is written as `float32`, matching CMPL's
-previous behavior. Use `dtype=None` to preserve the reference NIfTI data
-type, or pass an explicit NumPy dtype. For `.nii.gz` output, gzip compression
-can be controlled with `compression_level=0` through `9` (default `9`).
 
-The function preserves the reference NIfTI image class, affine, qform/sform
-transforms and codes, and header metadata while replacing only the voxel data.
-
-### Replace NIfTI data while preserving geometry
+### Replace NIfTI data while preserving the reference image
 
 ```python
 from mrif.utilities.io import update_nifti_data
@@ -235,6 +262,32 @@ updated = update_nifti_data(
     "reference.nii.gz",
     new_data,
     output_path="updated.nii.gz",
+)
+```
+
+By default, `update_nifti_data` preserves the reference image geometry, metadata, NIfTI image type, and source data type. The replacement array must have the same shape as the reference image.
+
+A different output dtype can be requested explicitly:
+
+```python
+import numpy as np
+
+updated = update_nifti_data(
+    "reference.nii.gz",
+    new_data,
+    output_path="updated.nii.gz",
+    dtype=np.float32,
+)
+```
+
+For `.nii.gz` output, the gzip compression level can also be selected:
+
+```python
+updated = update_nifti_data(
+    "reference.nii.gz",
+    new_data,
+    output_path="updated.nii.gz",
+    compression_level=6,
 )
 ```
 
@@ -294,7 +347,7 @@ output_path = itk_to_nifti(
 
 ### DICOM geometry and metadata helpers
 
-CMPL separates DICOM geometry and acquisition-metadata handling into dedicated modules under `mrif.dicom`.
+MRIForge separates DICOM geometry and acquisition-metadata handling into dedicated modules under `mrif.dicom`.
 
 ```python
 from mrif.dicom import (
@@ -354,7 +407,7 @@ where:
 - `T2*` is the transverse relaxation time
 - TE and T2* must use the same time unit
 
-CMPL conventionally uses milliseconds for T2* workflows.
+MRIForge conventionally uses milliseconds for T2* workflows.
 
 ### Fit a 3D two-parameter T2* model
 
@@ -385,7 +438,7 @@ If CUDA is available and no device is supplied, the fitter can select CUDA autom
 
 ### Command-line 3D T2* mapping
 
-CMPL includes a command-line interface for calculating T2* and S0 maps directly from a 4D multi-echo NIfTI file and its JSON metadata sidecar.
+MRIForge includes a command-line interface for calculating T2* and S0 maps directly from a 4D multi-echo NIfTI file and its JSON metadata sidecar.
 
 Install the required dependencies:
 
@@ -463,7 +516,7 @@ Request CUDA explicitly:
 mriforge-t2star multi_echo.nii.gz --device cuda
 ```
 
-If no device is specified, CMPL uses CUDA when available and otherwise uses CPU.
+If no device is specified, MRIForge uses CUDA when available and otherwise uses CPU.
 
 Optimization settings can also be adjusted:
 
@@ -516,7 +569,7 @@ rmse_pct, rse_pct = calculate_rmse_percentage_s0(
 )
 ```
 
-CMPL also contains additional 2D/3D T2* fitting functions.
+MRIForge also contains additional 2D/3D T2* fitting functions.
 
 Plotting is optional. Matplotlib is imported only when plotting is requested.
 
@@ -641,7 +694,7 @@ resized = resize_matrix(
 
 `resize_matrix` accepts NumPy arrays and PyTorch tensors. PyTorch is imported only when a Torch tensor is actually passed.
 
-For backward compatibility:
+For backward compatibility within the utilities package:
 
 ```python
 from mrif.utilities.utils import resize_matrix
@@ -659,7 +712,7 @@ Install the data extra:
 python -m pip install "mriforge[data]"
 ```
 
-CMPL includes a pandas-based utility for indexing directory trees that follow the CMPL medical-data convention:
+MRIForge includes a pandas-based utility for indexing directory trees that follow the package's medical-data convention:
 
 ```python
 from mrif.utilities.df_build import build_medical_data_frame
@@ -686,12 +739,12 @@ This utility is convention-specific rather than a general-purpose filesystem ind
 
 ## Lazy loading and optional dependencies
 
-CMPL is designed so unrelated optional packages are not imported simply because the top-level package is imported.
+MRIForge is designed so unrelated optional packages are not imported simply because the top-level package is imported.
 
 For example:
 
 ```python
-import cmpl
+import mrif
 ```
 
 does not immediately import PyTorch, Matplotlib, pandas, nibabel, pydicom, SimpleITK, h5py, or the Jupyter visualization stack.
@@ -737,10 +790,10 @@ The test suite covers:
 
 ### Build the package
 
-Build distributions:
+Clean previous build artifacts and build the distributions:
 
 ```bash
-rm -rf build dist *.egg-info
+rm -rf build dist *.egg-info src/*.egg-info
 python -m build
 ```
 
@@ -750,7 +803,7 @@ Validate them:
 python -m twine check dist/*
 ```
 
-Before publishing, it is also useful to install the built wheel into a clean environment and verify the packaged CLI commands:
+Before publishing, install the built wheel into a clean environment and verify the packaged CLI commands:
 
 ```bash
 mriforge-dicom-to-nifti --help
@@ -762,7 +815,7 @@ mriforge-t2star --help
 ## Package layout
 
 ```text
-src/cmpl/
+src/mrif/
 ├── _version.py
 ├── cli/
 │   ├── __init__.py
@@ -798,4 +851,4 @@ See the `LICENSE` file included with the project for licensing terms.
 
 ## Author
 
-CMPL is developed by Eisa Hedayati at CMRR.
+MRIForge is developed by Eisa Hedayati at CMRR.

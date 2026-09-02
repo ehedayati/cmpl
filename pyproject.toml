@@ -6,16 +6,34 @@ build-backend = "setuptools.build_meta"
 name = "mriforge"
 version = "0.3.0"
 authors = [{ name = "Eisa Hedayati" }]
-description = "CMRR MRI Processing Libraries"
+description = "MRI processing, reconstruction, quantitative MRI, and DICOM/NIfTI tools for Python"
 readme = "README.md"
 
 requires-python = ">=3.10"
 
+keywords = [
+    "MRI",
+    "medical imaging",
+    "DICOM",
+    "NIfTI",
+    "quantitative MRI",
+    "MRI reconstruction",
+    "T2 star",
+]
+
 classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Image Processing",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
     "License :: Other/Proprietary License",
 ]
+
 license = { file = "LICENSE" }
 
 # Lightweight dependencies needed by the core numerical functionality.
@@ -24,6 +42,11 @@ dependencies = [
     "scipy>=1.13,<2",
     "tqdm>=4.66",
 ]
+
+[project.urls]
+Homepage = "https://github.com/ehedayati/mriforge"
+Repository = "https://github.com/ehedayati/mriforge"
+Issues = "https://github.com/ehedayati/mriforge/issues"
 
 [project.scripts]
 mriforge-dicom-to-nifti = "mrif.cli.dicom_to_nifti:main"
